@@ -24,11 +24,6 @@ type Role struct {
 	Code string      `json:"code"`
 }
 
-type RolePermission struct {
-	RoleID       pgtype.UUID `json:"role_id"`
-	PermissionID pgtype.UUID `json:"permission_id"`
-}
-
 type User struct {
 	ID       pgtype.UUID `json:"id"`
 	Email    string      `json:"email"`

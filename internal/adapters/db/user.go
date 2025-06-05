@@ -5,14 +5,16 @@ import (
 
 	"github.com/funchooooza-ossh/protego/internal/db"
 	"github.com/funchooooza-ossh/protego/internal/domain"
+	"github.com/funchooooza-ossh/protego/internal/helpers"
 	"github.com/funchooooza-ossh/protego/internal/mapper"
+	"github.com/google/uuid"
 )
 
 type UserRepository struct {
-	q *db.Queries
+	q *db.UQueries
 }
 
-func NewUserRepository(q *db.Queries) *UserRepository {
+func NewUserRepository(q *db.UQueries) *UserRepository {
 	return &UserRepository{
 		q: q,
 	}
@@ -28,5 +30,51 @@ func (r *UserRepository) Create(ctx context.Context, user *domain.User) error {
 		return ParseDBError(err, origin)
 	}
 
+	return nil
+}
+
+func (r *UserRepository) GetByID(ctx context.Context, id string) (*domain.User, error) {
+	const origin = "user_repo.getById"
+
+	uuidID := helpers.UUIDToPg(uuid.MustParse(id))
+	userRow, err := r.q.GetUserByID(ctx, uuidID)
+	if err != nil {
+		return nil, ParseDBError(err, origin)
+	}
+
+	return mapper.ToDomainUser(userRow), nil
+}
+
+func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*domain.User, error) {
+	const origin = "user_repo.getByEmail"
+
+	userRow, err := r.q.GetUserByEmail(ctx, email)
+	if err != nil {
+		return nil, ParseDBError(err, origin)
+	}
+	return mapper.ToDomainUser(userRow), nil
+}
+
+func (r *UserRepository) Update(ctx context.Context, user *domain.User) error {
+	const origin = "user_repo.update"
+
+	input := mapper.FromDomainUser(user)
+	_, err := r.q.UpdateUser(ctx, input) // updated user not needed
+	if err != nil {
+		return ParseDBError(err, origin)
+	}
+
+	return nil
+
+}
+
+func (r *UserRepository) Delete(ctx context.Context, id string) error {
+	const origin = "user_repo.delete"
+
+	uuidID := helpers.UUIDToPg(uuid.MustParse(id))
+
+	if err := r.q.DeleteUser(ctx, uuidID); err != nil {
+		return ParseDBError(err, origin)
+	}
 	return nil
 }

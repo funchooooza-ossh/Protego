@@ -11,7 +11,7 @@ import (
 
 type InfraConnections struct {
 	DBPool  *pgxpool.Pool
-	Queries *db.Queries
+	Queries *db.UQueries
 	Redis   *redis.Client
 }
 
@@ -26,7 +26,7 @@ func NewInfraConnections(cfg *config.Config) (*InfraConnections, error) {
 		return nil, err
 	}
 
-	queries := db.New(pool)
+	queries := db.NewQueries(pool)
 
 	return &InfraConnections{
 		DBPool:  pool,

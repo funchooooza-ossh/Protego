@@ -44,6 +44,15 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 	return i, err
 }
 
+const deleteUser = `-- name: DeleteUser :exec
+DELETE FROM users WHERE id = $1
+`
+
+func (q *Queries) DeleteUser(ctx context.Context, id pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, deleteUser, id)
+	return err
+}
+
 const getPermissionsByRoleID = `-- name: GetPermissionsByRoleID :many
 SELECT p.id, p.action, p.resource_id
 FROM permissions p
@@ -116,6 +125,43 @@ SELECT id, email, password, role_id, blocked FROM users WHERE id = $1
 
 func (q *Queries) GetUserByID(ctx context.Context, id pgtype.UUID) (User, error) {
 	row := q.db.QueryRow(ctx, getUserByID, id)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.Password,
+		&i.RoleID,
+		&i.Blocked,
+	)
+	return i, err
+}
+
+const updateUser = `-- name: UpdateUser :one
+UPDATE users
+SET email = $2,
+    password = $3,
+    role_id = $4,
+    blocked = $5
+WHERE id = $1
+RETURNING id, email, password, role_id, blocked
+`
+
+type UpdateUserParams struct {
+	ID       pgtype.UUID `json:"id"`
+	Email    string      `json:"email"`
+	Password string      `json:"password"`
+	RoleID   pgtype.UUID `json:"role_id"`
+	Blocked  bool        `json:"blocked"`
+}
+
+func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error) {
+	row := q.db.QueryRow(ctx, updateUser,
+		arg.ID,
+		arg.Email,
+		arg.Password,
+		arg.RoleID,
+		arg.Blocked,
+	)
 	var i User
 	err := row.Scan(
 		&i.ID,
