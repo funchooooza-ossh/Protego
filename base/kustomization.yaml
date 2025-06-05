@@ -1,0 +1,17 @@
+namespace: kube-system
+resources:
+  - db
+  - protego
+  - redis
+
+
+generatorOptions:
+  disableNameSuffixHash: true
+
+configMapGenerator:
+  - name: protego-env
+    envs:
+      - environments/.env
+  - name: protego-postgres-env
+    envs:
+      - environments/.env

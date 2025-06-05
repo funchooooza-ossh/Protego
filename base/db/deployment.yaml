@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: protego-db
+  namespace: kube-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: protego-db
+  template:
+    metadata:
+      labels:
+        app: protego-db
+    spec:
+      containers:
+        - name: protego-db
+          image: postgres:16-alpine
+          envFrom:
+            - configMapRef:
+                name: protego-postgres-env
+          ports:
+            - name: entry
+              containerPort: 5432
+              protocol: TCP
+          volumeMounts:
+            - name: protego-postgres-volume
+              mountPath: /var/lib/postgresql/data
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - exec pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - |
+                  exec pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"
+            initialDelaySeconds: 5
+            periodSeconds: 10
+      volumes:
+        - name: protego-postgres-volume
+          persistentVolumeClaim:
+            claimName: protego-postgres-pvc

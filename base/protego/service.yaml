@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: protego
+  namespace: kube-system
+  labels:
+    app: protego
+spec:
+  selector:
+    app: protego
+  ports:
+    - name: "entry"
+      port: 8080
+      targetPort: entry

@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: protego-redis-pvc
+  namespace: kube-system
+spec:
+  storageClassName: redis
+  volumeName: protego-redis-pv
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
