@@ -9,7 +9,7 @@ const (
 
 type TokenClaims struct {
 	UserID    string
-	Role      Role
+	RoleID    string
 	Type      TokenType
 	JTI       string
 	IssuedAt  int64

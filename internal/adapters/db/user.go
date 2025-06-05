@@ -25,7 +25,7 @@ func (r *UserRepository) Create(ctx context.Context, user *domain.User) error {
 
 	input := mapper.FromDomainUser(user)
 
-	_, err := r.q.CreateUser(ctx, input) // created user not needed
+	_, err := r.q.CreateUser(ctx, input)
 	if err != nil {
 		return ParseDBError(err, origin)
 	}
@@ -59,7 +59,7 @@ func (r *UserRepository) Update(ctx context.Context, user *domain.User) error {
 	const origin = "user_repo.update"
 
 	input := mapper.FromDomainUser(user)
-	_, err := r.q.UpdateUser(ctx, input) // updated user not needed
+	_, err := r.q.UpdateUser(ctx, input)
 	if err != nil {
 		return ParseDBError(err, origin)
 	}
