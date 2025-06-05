@@ -2,8 +2,6 @@ package db
 
 import (
 	"context"
-	"database/sql"
-	"fmt"
 
 	"github.com/jackc/pgx/v5/pgtype"
 )
@@ -45,9 +43,6 @@ func (q *UQueries) GetUserByEmail(ctx context.Context, email string) (User, erro
 		&i.RoleID,
 		&i.Blocked,
 	)
-	if err != nil && err.Error() == "no rows in result set" {
-		return i, fmt.Errorf("%w", sql.ErrNoRows)
-	}
 	return i, err
 }
 
@@ -61,9 +56,6 @@ func (q *UQueries) GetUserByID(ctx context.Context, id pgtype.UUID) (User, error
 		&i.RoleID,
 		&i.Blocked,
 	)
-	if err != nil && err.Error() == "no rows in result set" {
-		return i, fmt.Errorf("%w", sql.ErrNoRows)
-	}
 	return i, err
 }
 
