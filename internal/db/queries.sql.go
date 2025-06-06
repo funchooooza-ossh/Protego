@@ -11,6 +11,24 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const createRole = `-- name: CreateRole :one
+INSERT INTO roles (id, code)
+VALUES ($1, $2)
+RETURNING id, code
+`
+
+type CreateRoleParams struct {
+	ID   pgtype.UUID `json:"id"`
+	Code string      `json:"code"`
+}
+
+func (q *Queries) CreateRole(ctx context.Context, arg CreateRoleParams) (Role, error) {
+	row := q.db.QueryRow(ctx, createRole, arg.ID, arg.Code)
+	var i Role
+	err := row.Scan(&i.ID, &i.Code)
+	return i, err
+}
+
 const createUser = `-- name: CreateUser :one
 INSERT INTO users (id, email, password, role_id, blocked)
 VALUES ($1, $2, $3, $4, $5)
@@ -97,6 +115,17 @@ SELECT id, code FROM roles WHERE code = $1
 
 func (q *Queries) GetRoleByCode(ctx context.Context, code string) (Role, error) {
 	row := q.db.QueryRow(ctx, getRoleByCode, code)
+	var i Role
+	err := row.Scan(&i.ID, &i.Code)
+	return i, err
+}
+
+const getRoleByID = `-- name: GetRoleByID :one
+SELECT id, code FROM roles WHERE id = $1
+`
+
+func (q *Queries) GetRoleByID(ctx context.Context, id pgtype.UUID) (Role, error) {
+	row := q.db.QueryRow(ctx, getRoleByID, id)
 	var i Role
 	err := row.Scan(&i.ID, &i.Code)
 	return i, err

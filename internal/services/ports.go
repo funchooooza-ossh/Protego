@@ -1,1 +1,17 @@
 package services
+
+import (
+	"context"
+
+	"github.com/funchooooza-ossh/protego/internal/domain"
+)
+
+type UserServiceInterface interface {
+	CreateUser(ctx context.Context, email, password string) (*domain.User, error)
+	GetUserByEmail(ctx context.Context, email string) (*domain.User, error)
+	HasPermission(ctx context.Context, userID string, resourceCode string, action string) (bool, error)
+	VerifyPassword(ctx context.Context, password string, hashed string) bool
+	IncreaseCounter(ctx context.Context, id string) (int, error)
+	DeleteCounter(ctx context.Context, id string) error
+	BlockUser(ctx context.Context, id string) error
+}

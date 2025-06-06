@@ -31,3 +31,19 @@ func FromDomainUser(u *domain.User) db.UserParams {
 		Blocked:  u.Blocked,
 	}
 }
+
+func ToDomainRole(row db.Role) *domain.Role {
+	uid := helpers.UUIDFromPg(row.ID)
+
+	return &domain.Role{
+		ID:   uid.String(),
+		Code: row.Code,
+	}
+}
+
+func FromDomainRole(r *domain.Role) db.RoleParams {
+	return db.RoleParams{
+		ID:   helpers.UUIDToPg(uuid.MustParse(r.ID)),
+		Code: r.Code,
+	}
+}

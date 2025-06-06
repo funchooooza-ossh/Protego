@@ -14,6 +14,11 @@ type UserRepositoryInterface interface {
 	Delete(ctx context.Context, id string) error
 }
 
+type RoleRepositoryInterface interface {
+	Create(ctx context.Context, role *domain.Role) error
+	GetByCode(ctx context.Context, code string) (*domain.Role, error)
+}
+
 type CacheRepositoryInterface interface { // All of Redis repos works with already completed keys
 	Set(ctx context.Context, key string, value string) error
 	Get(ctx context.Context, key string) (value string, err error)

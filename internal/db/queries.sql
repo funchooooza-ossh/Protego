@@ -30,3 +30,11 @@ WHERE rp.role_id = $1;
 
 -- name: GetResourceByCode :one
 SELECT * FROM resources WHERE code = $1;
+
+-- name: CreateRole :one
+INSERT INTO roles (id, code)
+VALUES ($1, $2)
+RETURNING *;
+
+-- name: GetRoleByID :one
+SELECT * FROM roles WHERE id = $1;
