@@ -39,7 +39,7 @@ func (u *LoginUsecase) Execute(ctx context.Context, email, password string) (str
 	userID := user.ID
 	valid, err := u.userService.VerifyPassword(ctx, password, user.Password)
 	if err != nil {
-		return "", "", e.ReturnErr(origin, err, e.Warn)
+		e.LogErr(origin, err, e.Info)
 	}
 	if !valid {
 		counter, err := u.userService.IncreaseCounter(ctx, userID)
