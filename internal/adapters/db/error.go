@@ -4,36 +4,26 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 	"net"
 	"reflect"
-	"regexp"
 
 	e "github.com/funchooooza-ossh/protego/internal/errors"
-	"github.com/jackc/pgconn"
 	"github.com/jackc/pgx"
 )
-
-var sqlstateRegex = regexp.MustCompile(`SQLSTATE (\d{5})`)
 
 func ParseDBError(err error, origin string) error {
 	if err == nil {
 		return nil
 	}
 
-	fmt.Printf("Error: %v\nType: %T\n", err, err) // TODO Убрать позже
-
 	// Not found
 	if errors.Is(err, sql.ErrNoRows) || errors.Is(err, pgx.ErrNoRows) || err.Error() == "no rows in result set" {
 		e.LogErr(origin, err, e.Info)
 		return e.ErrNotFound
 	}
-	fmt.Printf("reflect.TypeOf: %v\n", reflect.TypeOf(err))
-	fmt.Printf("*pgconn.PgError? %v\n", reflect.TypeOf(err) == reflect.TypeOf(&pgconn.PgError{}))
 
-	// pgconn error codes
-	if matches := sqlstateRegex.FindStringSubmatch(err.Error()); len(matches) == 2 {
-		code := matches[1]
+	// Попробуем reflection-based распаковку pgconn.PgError
+	if code, ok := extractSQLStateCode(err); ok {
 		e.LogErr(origin, err, e.Warn)
 
 		switch code {
@@ -65,7 +55,27 @@ func ParseDBError(err error, origin string) error {
 		return e.ErrTimeout
 	}
 
-	// fallback
 	e.LogErr(origin, err, e.Warn)
 	return e.ErrInternal
+}
+
+func extractSQLStateCode(err error) (string, bool) { // необходимый костыль, к сожалению иного решения я так и не нашел
+	// Type must be named *pgconn.PgError
+	t := reflect.TypeOf(err)
+	if t == nil || t.Kind() != reflect.Ptr {
+		return "", false
+	}
+
+	if t.String() != "*pgconn.PgError" {
+		return "", false
+	}
+
+	// Пытаемся достать поле Code через reflect
+	v := reflect.ValueOf(err).Elem()
+	codeField := v.FieldByName("Code")
+	if !codeField.IsValid() || codeField.Kind() != reflect.String {
+		return "", false
+	}
+
+	return codeField.String(), true
 }
