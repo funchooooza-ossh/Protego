@@ -1,0 +1,210 @@
+definitions:
+  dto.ErrorResponse:
+    properties:
+      error:
+        type: string
+    type: object
+  dto.LoginRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  dto.LoginSuccessResponse:
+    properties:
+      msg:
+        example: Welcome back, User
+        type: string
+    type: object
+  dto.RegisterRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  dto.RegisterSuccessResponse:
+    properties:
+      msg:
+        example: user created
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: This is the infrastructure auth service for your platform.
+  title: ProteGO API
+  version: "1.0"
+paths:
+  /auth/forward:
+    get:
+      consumes:
+      - application/json
+      description: Forward auth для любого зарегестрированного ресурса
+      parameters:
+      - description: Запрашиваемый ресурс
+        in: header
+        name: X-Resource-Code
+        required: true
+        type: string
+      - description: Запрашиваемый метод
+        in: header
+        name: X-Forwarded-Method
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "401":
+          description: token invalid
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: access denied
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: resource not found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "409":
+          description: conflict
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "422":
+          description: invalid input
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "429":
+          description: too many requests
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: unexpected internal error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "503":
+          description: service unavailable
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "504":
+          description: request timed out
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - AccessToken: []
+      summary: ForwardAuth. Main endpoint to validate user permissions
+      tags:
+      - auth
+  /login:
+    post:
+      consumes:
+      - application/json
+      description: Авторизация, возвращает куки с токенами
+      parameters:
+      - description: Тело запроса
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: welcome back, user
+          schema:
+            $ref: '#/definitions/dto.LoginSuccessResponse'
+        "404":
+          description: resource not found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "409":
+          description: conflict
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "422":
+          description: invalid input
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "429":
+          description: too many requests
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: unexpected internal error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "503":
+          description: service unavailable
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "504":
+          description: request timed out
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Авторизация
+      tags:
+      - auth
+  /register:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Тело запроса
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: user created
+          schema:
+            $ref: '#/definitions/dto.RegisterSuccessResponse'
+        "409":
+          description: conflict
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "422":
+          description: invalid input
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "429":
+          description: too many requests
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: unexpected internal error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "503":
+          description: service unavailable
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "504":
+          description: request timed out
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Register new user
+      tags:
+      - auth
+securityDefinitions:
+  AccessToken:
+    in: cookie
+    name: access_token
+    type: apiKey
+  RefreshToken:
+    in: cookie
+    name: refresh_token
+    type: apiKey
+swagger: "2.0"

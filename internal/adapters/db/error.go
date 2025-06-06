@@ -1,57 +1,71 @@
 package adapters
 
 import (
+	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"net"
+	"reflect"
+	"regexp"
 
 	e "github.com/funchooooza-ossh/protego/internal/errors"
 	"github.com/jackc/pgconn"
-	"golang.org/x/net/context"
+	"github.com/jackc/pgx"
 )
+
+var sqlstateRegex = regexp.MustCompile(`SQLSTATE (\d{5})`)
 
 func ParseDBError(err error, origin string) error {
 	if err == nil {
 		return nil
 	}
 
-	var pgErr *pgconn.PgError
-	if errors.As(err, &pgErr) {
-		switch pgErr.Code {
-		case "23505": // unique_violation
-			e.LogErr(origin, err, e.Warn)
-			return fmt.Errorf("%w", e.ErrAlreadyExists)
-		case "23503": // foreign_key_violation
-			e.LogErr(origin, err, e.Warn)
-			return fmt.Errorf("%w", e.ErrConflict)
-		case "23502": // not_null_violation
-			e.LogErr(origin, err, e.Warn)
-			return fmt.Errorf("%w", e.ErrInvalidInput)
-		case "23514": // check_violation
-			e.LogErr(origin, err, e.Warn)
-			return fmt.Errorf("%w", e.ErrValidationFailed)
+	fmt.Printf("Error: %v\nType: %T\n", err, err) // TODO Убрать позже
+
+	// Not found
+	if errors.Is(err, sql.ErrNoRows) || errors.Is(err, pgx.ErrNoRows) || err.Error() == "no rows in result set" {
+		e.LogErr(origin, err, e.Info)
+		return e.ErrNotFound
+	}
+	fmt.Printf("reflect.TypeOf: %v\n", reflect.TypeOf(err))
+	fmt.Printf("*pgconn.PgError? %v\n", reflect.TypeOf(err) == reflect.TypeOf(&pgconn.PgError{}))
+
+	// pgconn error codes
+	if matches := sqlstateRegex.FindStringSubmatch(err.Error()); len(matches) == 2 {
+		code := matches[1]
+		e.LogErr(origin, err, e.Warn)
+
+		switch code {
+		case "23505":
+			return e.ErrAlreadyExists
+		case "23503":
+			return e.ErrConflict
+		case "23502":
+			return e.ErrInvalidInput
+		case "23514":
+			return e.ErrValidationFailed
 		default:
-			e.LogErr(origin, pgErr, e.Warn)
-			return fmt.Errorf("%w", e.ErrInternal)
+			return e.ErrInternal
 		}
 	}
 
-	// network errors
+	// network
 	var netErr *net.OpError
 	if errors.As(err, &netErr) {
 		e.LogErr(origin, netErr, e.Warn)
-		return fmt.Errorf("%w", e.ErrServiceDown)
+		return e.ErrServiceDown
 	}
 
-	// context errors
+	// context
 	switch {
 	case errors.Is(err, context.DeadlineExceeded),
 		errors.Is(err, context.Canceled):
 		e.LogErr(origin, err, e.Warn)
-		return fmt.Errorf("%w", e.ErrTimeout)
+		return e.ErrTimeout
 	}
 
 	// fallback
 	e.LogErr(origin, err, e.Warn)
-	return fmt.Errorf("%w", e.ErrInternal)
+	return e.ErrInternal
 }

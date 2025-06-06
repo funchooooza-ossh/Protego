@@ -27,6 +27,7 @@ func NewUserService(
 	userRepo adapters.UserRepositoryInterface,
 	roleRepo adapters.RoleRepositoryInterface,
 	counterRepo adapters.CounterRepositoryInterface,
+	accessRepo adapters.AccessRepositoryInterface,
 	defaultRoleCode string,
 	passwordCost int,
 ) *UserService {
@@ -34,21 +35,33 @@ func NewUserService(
 		userRepo:        userRepo,
 		roleRepo:        roleRepo,
 		counterRepo:     counterRepo,
+		accessRepo:      accessRepo,
 		defaultRoleCode: defaultRoleCode,
 		passwordCost:    passwordCost,
 	}
 }
 
-func (s *UserService) HasAccess(ctx context.Context, roleID, action, resourceCode string) bool {
+func (s *UserService) HasPermission(ctx context.Context, roleID, action, resourceCode string) (bool, error) {
 	const origin = "user_service.has_access"
 
 	allowed, err := s.accessRepo.HasAccess(ctx, roleID, action, resourceCode)
 	if err != nil {
-		e.LogErr(origin, err, e.Warn)
-		return false
+		return false, e.ReturnErr(origin, err, e.Warn)
 	}
 
-	return allowed
+	return allowed, nil
+}
+
+func (s *UserService) GetUserByEmail(ctx context.Context, email string) (*domain.User, error) {
+	const origin = "user_service.GetUserByEmail"
+	user, err := s.userRepo.GetByEmail(ctx, email)
+	if err != nil {
+		return nil, e.ReturnErr(origin, err, e.Info)
+	}
+	if user.Blocked {
+		return nil, e.ReturnErr(origin, fmt.Errorf("%w: user is blocked", e.ErrForbidden), e.Info)
+	}
+	return user, nil
 }
 
 func (s *UserService) CreateUser(ctx context.Context, email, password string) (*domain.User, error) {
@@ -152,8 +165,4 @@ func (s *UserService) hashPassword(ctx context.Context, password string) ([]byte
 	return helpers.SafeWithContext(ctx, func() ([]byte, error) {
 		return bcrypt.GenerateFromPassword([]byte(password), s.passwordCost)
 	})
-}
-
-func (s *UserService) accessKey(roleID, action, resourceCode string) string {
-	return fmt.Sprintf("%s:%s:%s", roleID, action, resourceCode)
 }

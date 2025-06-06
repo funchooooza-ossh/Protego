@@ -17,6 +17,7 @@ COPY --from=builder /app/protego .
 COPY --from=builder /app/cli-tool .
 COPY .env .
 COPY entrypoint.sh .
+COPY migrations ./migrations
 RUN chmod +x entrypoint.sh
 
 EXPOSE 8080

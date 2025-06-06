@@ -1,6 +1,7 @@
 package composition
 
 import (
+	"log"
 	"time"
 
 	"github.com/funchooooza-ossh/protego/internal/adapters"
@@ -8,6 +9,9 @@ import (
 	redisadapters "github.com/funchooooza-ossh/protego/internal/adapters/redis"
 	"github.com/funchooooza-ossh/protego/internal/config"
 	"github.com/funchooooza-ossh/protego/internal/db"
+	"github.com/funchooooza-ossh/protego/internal/services"
+	"github.com/funchooooza-ossh/protego/internal/tokens"
+	"github.com/funchooooza-ossh/protego/internal/usecases"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
 )
@@ -62,4 +66,59 @@ func NewRepositories(conns *InfraConnections, cfg *config.Config) *Repositories 
 		Access:  cacheAccess,
 		Counter: counter,
 	}
+}
+
+type Services struct {
+	User  services.UserServiceInterface
+	Token services.TokenServiceInterface
+}
+
+func NewServices(repos *Repositories, cfg *config.Config) *Services {
+	userService := services.NewUserService(repos.User,
+		repos.Role,
+		repos.Counter,
+		repos.Access,
+		"user", //TODO env
+		cfg.PassCost,
+	)
+	jwt := tokens.NewJWTManager(cfg.JWTSecret)
+	tokenService := services.NewTokenService(jwt, repos.Session, cfg.AccessTtl, cfg.RefreshTtl)
+
+	return &Services{
+		User:  userService,
+		Token: tokenService,
+	}
+}
+
+type Usecaess struct {
+	Register usecases.RegisterUsecaseInterface
+	Login    usecases.LoginUsecaseInterface
+	Auth     usecases.AuthUsecaseInterface
+	Logout   usecases.LogoutUsecaseInterface
+}
+
+func NewUsecases(servs *Services, cfg *config.Config) *Usecaess {
+	Register := usecases.NewRegisterUsecase(servs.User)
+	Login := usecases.NewLoginUsecase(servs.User, servs.Token, cfg.LoginAttempts)
+	Auth := usecases.NewAuthUsecase(servs.User, servs.Token)
+	Logout := usecases.NewLogoutUsecase(servs.Token)
+
+	return &Usecaess{
+		Register: Register,
+		Login:    Login,
+		Auth:     Auth,
+		Logout:   Logout,
+	}
+
+}
+func ProvideDependencies(cfg *config.Config) *Usecaess {
+	conn, err := NewInfraConnections(cfg)
+	if err != nil {
+		log.Fatalf("failed to create connections: %v", err)
+
+	}
+	repos := NewRepositories(conn, cfg)
+	services := NewServices(repos, cfg)
+	return NewUsecases(services, cfg)
+
 }
