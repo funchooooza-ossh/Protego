@@ -166,3 +166,7 @@ func (s *UserService) hashPassword(ctx context.Context, password string) ([]byte
 		return bcrypt.GenerateFromPassword([]byte(password), s.passwordCost)
 	})
 }
+
+func (s *UserService) accessKey(roleID, action, resourceCode string) string {
+	return fmt.Sprintf("%s:%s:%s", roleID, action, resourceCode)
+}
