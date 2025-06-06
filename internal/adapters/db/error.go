@@ -6,13 +6,10 @@ import (
 	"errors"
 	"net"
 	"reflect"
-	"regexp"
 
 	e "github.com/funchooooza-ossh/protego/internal/errors"
 	"github.com/jackc/pgx"
 )
-
-var sqlstateRegex = regexp.MustCompile(`SQLSTATE (\d{5})`)
 
 func ParseDBError(err error, origin string) error {
 	if err == nil {
