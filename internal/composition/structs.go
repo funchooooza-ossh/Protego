@@ -3,6 +3,9 @@ package composition
 import (
 	"time"
 
+	"github.com/funchooooza-ossh/protego/internal/adapters"
+	dbadapters "github.com/funchooooza-ossh/protego/internal/adapters/db"
+	redisadapters "github.com/funchooooza-ossh/protego/internal/adapters/redis"
 	"github.com/funchooooza-ossh/protego/internal/config"
 	"github.com/funchooooza-ossh/protego/internal/db"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -33,4 +36,30 @@ func NewInfraConnections(cfg *config.Config) (*InfraConnections, error) {
 		Queries: queries,
 		Redis:   rdb,
 	}, nil
+}
+
+type Repositories struct {
+	User    adapters.UserRepositoryInterface
+	Session adapters.CacheRepositoryInterface
+	Counter adapters.CounterRepositoryInterface
+	Role    adapters.RoleRepositoryInterface
+	Access  adapters.AccessRepositoryInterface
+}
+
+func NewRepositories(conns *InfraConnections, cfg *config.Config) *Repositories {
+	user := dbadapters.NewUserRepository(conns.Queries)
+	role := dbadapters.NewRoleRepository(conns.Queries)
+	access := dbadapters.NewAccessRepository(conns.Queries)
+
+	cacheAccess := redisadapters.NewRedisAside(conns.Redis, access, cfg.AccessCacheTTL)
+	session := redisadapters.NewSessionRepository(conns.Redis, cfg.RefreshTtl)
+	counter := redisadapters.NewCounterRepository(conns.Redis, cfg.LoginCounterTTL)
+
+	return &Repositories{
+		User:    user,
+		Role:    role,
+		Session: session,
+		Access:  cacheAccess,
+		Counter: counter,
+	}
 }

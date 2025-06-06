@@ -29,3 +29,7 @@ type CounterRepositoryInterface interface {
 	Increment(ctx context.Context, key string) (int, error)
 	Delete(ctx context.Context, key string) error
 }
+
+type AccessRepositoryInterface interface {
+	HasAccess(ctx context.Context, roleID, action, resourceCode string) (bool, error)
+}

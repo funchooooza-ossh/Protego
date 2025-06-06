@@ -20,7 +20,7 @@ func NewCounterRepository(rdb *redis.Client, ttl time.Duration) *CounterReposito
 	}
 }
 
-func (r *CounterRepository) Increment(ctx context.Context, key, value string) (int, error) {
+func (r *CounterRepository) Increment(ctx context.Context, key string) (int, error) {
 	const origin = "counter_repo.set"
 
 	val, err := r.rdb.Incr(ctx, key).Result()

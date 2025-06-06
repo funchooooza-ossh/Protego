@@ -165,6 +165,39 @@ func (q *Queries) GetUserByID(ctx context.Context, id pgtype.UUID) (User, error)
 	return i, err
 }
 
+const hasAccess = `-- name: HasAccess :one
+SELECT EXISTS (
+    SELECT 1
+    FROM roles r
+    WHERE r.id = $1
+      AND (
+        r.code = 'supermanager'
+        OR EXISTS (
+            SELECT 1
+            FROM role_permissions rp
+            JOIN permissions p ON rp.permission_id = p.id
+            JOIN resources res ON p.resource_id = res.id
+            WHERE rp.role_id = r.id
+              AND p.action = $2
+              AND res.code = $3
+        )
+      )
+) AS has_access
+`
+
+type HasAccessParams struct {
+	ID     pgtype.UUID `json:"id"`
+	Action string      `json:"action"`
+	Code   string      `json:"code"`
+}
+
+func (q *Queries) HasAccess(ctx context.Context, arg HasAccessParams) (bool, error) {
+	row := q.db.QueryRow(ctx, hasAccess, arg.ID, arg.Action, arg.Code)
+	var has_access bool
+	err := row.Scan(&has_access)
+	return has_access, err
+}
+
 const updateUser = `-- name: UpdateUser :one
 UPDATE users
 SET email = $2,
