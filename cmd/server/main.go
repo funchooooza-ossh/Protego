@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/funchooooza-ossh/protego/cmd/server/handlers"
+	"github.com/funchooooza-ossh/protego/cmd/server/middlewares"
 	_ "github.com/funchooooza-ossh/protego/docs"
 	"github.com/funchooooza-ossh/protego/internal/composition"
 	"github.com/funchooooza-ossh/protego/internal/config"
@@ -39,7 +40,7 @@ func main() {
 	usecases := composition.ProvideDependencies(cfg)
 
 	router := gin.Default()
-
+	router.Use(middlewares.TimeoutMiddleware(3 * time.Second)) // TODO env reuqest timeout
 	// Routes
 	group := router.Group(cfg.MainRoute)
 	group.POST("/login", handlers.MakeLoginHandler(usecases.Login, cfg))
