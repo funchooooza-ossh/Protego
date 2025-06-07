@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/funchooooza-ossh/protego/cmd/server/dto"
@@ -53,6 +54,7 @@ func authHandler(c *gin.Context, u usecases.AuthUsecaseInterface, cfg *config.Co
 
 	if err != nil {
 		code, msg := e.ToHTTPResponse(err)
+		log.Printf("authHandler: error: %v. Response: code: %v, msg: %s", err, code, msg)
 		c.JSON(code, dto.ErrorResponse{Error: msg})
 		return
 	}

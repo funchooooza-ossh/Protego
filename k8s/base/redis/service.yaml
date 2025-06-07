@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: protego-redis
+  namespace: kube-system
+spec:
+  selector:
+    app: protego-redis
+  ports:
+    - name: entry
+      port: 6379
+      targetPort: entry
+  type: ClusterIP

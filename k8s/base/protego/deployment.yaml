@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: protego
+  namespace: kube-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: protego
+  template:
+    metadata:
+      labels:
+        app: protego
+    spec:
+      dnsPolicy: ClusterFirst
+      containers:
+        - name: protego
+          image: protego:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: entry
+              containerPort: 8080
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: protego-env
+          env:
+            - name: MAIN_ROUTE
+              valueFrom:
+                configMapKeyRef:
+                  name: global-config
+                  key:  PROTEGO_PATH

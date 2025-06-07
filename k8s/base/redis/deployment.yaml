@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: protego-redis
+  namespace: kube-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: protego-redis
+  template:
+    metadata:
+      labels:
+        app: protego-redis
+    spec:
+      containers:
+        - name: protego-redis
+          image: redis:7-alpine
+          ports:
+            - containerPort: 6379
+              name: entry
+              protocol: TCP
+          volumeMounts:
+            - name: protego-redis-volume
+              mountPath: /data
+      volumes:
+        - name: protego-redis-volume
+          persistentVolumeClaim:
+            claimName: protego-redis-pvc

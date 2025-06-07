@@ -29,7 +29,7 @@ func (u *AuthUsecase) Execute(ctx context.Context, resource, action, access, ref
 		return false, "", e.ReturnErr(origin, err, e.Info)
 	}
 
-	allowed, err := u.userService.HasPermission(ctx, claims.UserID, resource, action)
+	allowed, err := u.userService.HasPermission(ctx, claims.RoleID, action, resource)
 	if err != nil {
 		return false, newAccess, e.ReturnErr(origin, err, e.Info)
 	}
