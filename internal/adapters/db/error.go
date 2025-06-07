@@ -8,7 +8,7 @@ import (
 	"reflect"
 
 	e "github.com/funchooooza-ossh/protego/internal/errors"
-	"github.com/jackc/pgx"
+	"github.com/jackc/pgx/v5"
 )
 
 func ParseDBError(err error, origin string) error {
