@@ -9,6 +9,7 @@ import (
 	"github.com/dgraph-io/ristretto"
 	"github.com/funchooooza-ossh/protego/internal/adapters"
 	e "github.com/funchooooza-ossh/protego/internal/errors"
+	"github.com/funchooooza-ossh/protego/internal/logger"
 	"github.com/redis/go-redis/v9"
 	"golang.org/x/sync/singleflight"
 )
@@ -88,8 +89,7 @@ func (r *RedisAsideAccess) get(ctx context.Context, key string) (*bool, error) {
 	}
 
 	result := (val == "1")
-
-	//3. Кэшируем обратно в LRU
+	//3.Ставим в LRU
 	r.localCache.SetWithTTL(key, result, 1, r.ttl)
 
 	return &result, nil
@@ -100,21 +100,27 @@ func (r *RedisAsideAccess) cacheAccess(ctx context.Context, key, origin string, 
 	r.localCache.SetWithTTL(key, allowed, 1, r.ttl)
 
 	// Асинхронный пуш в Redis
-	go func(parentCtx context.Context) {
+	go func() {
 		defer func() {
 			if rec := recover(); rec != nil {
-				e.LogErr(parentCtx, origin, fmt.Errorf("panic in cacheAccess: %v", rec), e.Info)
+				e.LogErr(ctx, origin, fmt.Errorf("panic in cacheAccess: %v", rec), e.Info)
 			}
 		}()
 
-		// Создаем scoped timeout контекст на базе родительского
-		ctx, cancel := context.WithTimeout(parentCtx, 300*time.Millisecond)
+		// Detached ctx, но переносим request_id
+		bg := context.Background()
+		if rid := logger.GetRequestID(ctx); rid != "" {
+			bg = context.WithValue(bg, logger.CtxKeyRequestID{}, rid)
+		}
+
+		// Scoped timeout
+		ctxWithTimeout, cancel := context.WithTimeout(bg, 300*time.Millisecond)
 		defer cancel()
 
-		if err := r.set(ctx, key, allowed); err != nil {
-			e.LogErr(ctx, origin, err, e.Info)
+		if err := r.set(ctxWithTimeout, key, allowed); err != nil {
+			e.BestEffort(ctxWithTimeout, origin, "set redis", err)
 		}
-	}(ctx)
+	}()
 }
 
 func (r *RedisAsideAccess) set(ctx context.Context, key string, value bool) error {
