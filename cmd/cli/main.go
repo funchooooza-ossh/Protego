@@ -36,11 +36,7 @@ func main() {
 	cfg := config.Load()
 
 	// Connect infrastructure (DB, Redis, etc.)
-	conns, err := composition.NewInfraConnections(cfg)
-	if err != nil {
-		fmt.Println("Infra init failed:", err)
-		os.Exit(1)
-	}
+	conns := composition.ProvideConnections(cfg)
 
 	// Apply DB migrations
 	if err := composition.ApplyMigrations(cfg.DatabaseDsn(), "./migrations"); err != nil {
@@ -55,7 +51,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	repos := composition.NewRepositories(conns, cfg)
+	repos := composition.ProvideAdapters(conns, cfg)
 	ctx := context.Background()
 
 	// Prevent duplicate superuser

@@ -2,133 +2,41 @@ package composition
 
 import (
 	"log"
-	"time"
+	"net/http"
 
-	dbadapters "github.com/funchooooza-ossh/protego/internal/adapters/db"
-	lruadapters "github.com/funchooooza-ossh/protego/internal/adapters/lru"
-	redisadapters "github.com/funchooooza-ossh/protego/internal/adapters/redis"
+	adapters "github.com/funchooooza-ossh/protego/internal/composition/adapters"
+	conns "github.com/funchooooza-ossh/protego/internal/composition/connections"
+	services "github.com/funchooooza-ossh/protego/internal/composition/services"
+	usecases "github.com/funchooooza-ossh/protego/internal/composition/usecases"
 	"github.com/funchooooza-ossh/protego/internal/config"
-	"github.com/funchooooza-ossh/protego/internal/contracts"
-	"github.com/funchooooza-ossh/protego/internal/db"
-	"github.com/funchooooza-ossh/protego/internal/infra"
-	"github.com/funchooooza-ossh/protego/internal/services"
-	"github.com/funchooooza-ossh/protego/internal/tokens"
-	"github.com/funchooooza-ossh/protego/internal/usecases"
-	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/redis/go-redis/v9"
+	"github.com/gin-gonic/gin"
 )
 
-type InfraConnections struct {
-	DBPool  *pgxpool.Pool
-	Queries *db.UQueries
-	Redis   *redis.Client
-}
-
-func NewInfraConnections(cfg *config.Config) (*InfraConnections, error) {
-	pool, err := ConnectDB(cfg)
-	if err != nil {
-		return nil, err
-	}
-
-	rdb, err := ConnectRedis(cfg, 3, time.Second)
-	if err != nil {
-		return nil, err
-	}
-
-	queries := db.NewQueries(pool)
-
-	return &InfraConnections{
-		DBPool:  pool,
-		Queries: queries,
-		Redis:   rdb,
-	}, nil
-}
-
-type Repositories struct {
-	User    contracts.UserRepositoryInterface
-	Session contracts.CacheRepositoryInterface
-	Counter contracts.CounterRepositoryInterface
-	Role    contracts.RoleRepositoryInterface
-	Access  contracts.AccessRepositoryInterface
-}
-
-func NewRepositories(conns *InfraConnections, cfg *config.Config) *Repositories {
-	user := dbadapters.NewUserRepository(conns.Queries)
-	role := dbadapters.NewRoleRepository(conns.Queries)
-	access := dbadapters.NewAccessRepository(conns.Queries)
-
-	lruAccessCache := lruadapters.NewLruAccessCacheRepository(
-		1e7, //TODO env
-		1e6,
-		64,
-		cfg.AccessCacheTTL,
-	)
-
-	redisAccessCache := redisadapters.NewCacheAccesRepository(conns.Redis, cfg.AccessCacheTTL)
-	cacheAccess := infra.NewAccessCacheAside(redisAccessCache, access, lruAccessCache) //TODO infra layer struct
-	session := redisadapters.NewSessionRepository(conns.Redis, cfg.RefreshTtl)
-	counter := redisadapters.NewCounterRepository(conns.Redis, cfg.LoginCounterTTL)
-
-	return &Repositories{
-		User:    user,
-		Role:    role,
-		Session: session,
-		Access:  cacheAccess,
-		Counter: counter,
-	}
-}
-
-type Services struct {
-	User  contracts.UserServiceInterface
-	Token contracts.TokenServiceInterface
-}
-
-func NewServices(repos *Repositories, cfg *config.Config) *Services {
-	userService := services.NewUserService(repos.User,
-		repos.Role,
-		repos.Counter,
-		repos.Access,
-		"user", //TODO env
-		cfg.PassCost,
-	)
-	jwt := tokens.NewJWTManager(cfg.JWTSecret)
-	tokenService := services.NewTokenService(jwt, repos.Session, cfg.AccessTtl, cfg.RefreshTtl)
-
-	return &Services{
-		User:  userService,
-		Token: tokenService,
-	}
-}
-
-type Usecaess struct {
-	Register contracts.RegisterUsecaseInterface
-	Login    contracts.LoginUsecaseInterface
-	Auth     contracts.AuthUsecaseInterface
-	Logout   contracts.LogoutUsecaseInterface
-}
-
-func NewUsecases(servs *Services, cfg *config.Config) *Usecaess {
-	Register := usecases.NewRegisterUsecase(servs.User)
-	Login := usecases.NewLoginUsecase(servs.User, servs.Token, cfg.LoginAttempts)
-	Auth := usecases.NewAuthUsecase(servs.User, servs.Token)
-	Logout := usecases.NewLogoutUsecase(servs.Token)
-
-	return &Usecaess{
-		Register: Register,
-		Login:    Login,
-		Auth:     Auth,
-		Logout:   Logout,
-	}
-
-}
-func ProvideDependencies(cfg *config.Config) *Usecaess {
-	conn, err := NewInfraConnections(cfg)
+func ProvideConnections(cfg *config.Config) *conns.InfraConnections {
+	conn, err := conns.NewInfraConnections(cfg)
 	if err != nil {
 		log.Fatalf("failed to create connections: %v", err)
 
 	}
-	repos := NewRepositories(conn, cfg)
-	services := NewServices(repos, cfg)
-	return NewUsecases(services, cfg)
+	return conn
+}
+
+func ProvideHttpServer(cfg *config.Config, router *gin.Engine) *http.Server {
+	return conns.NewHttpServer(cfg, router)
+}
+
+func ProvideAdapters(conns *conns.InfraConnections, cfg *config.Config) *adapters.Repositories {
+	return adapters.NewRepositories(conns, cfg)
+}
+
+func BuildApp(cfg *config.Config) *usecases.Usecaess {
+	conn, err := conns.NewInfraConnections(cfg)
+	if err != nil {
+		log.Fatalf("failed to create connections: %v", err)
+
+	}
+	repos := adapters.NewRepositories(conn, cfg)
+	services := services.NewServices(repos, cfg)
+	return usecases.NewUsecases(services, cfg)
 
 }

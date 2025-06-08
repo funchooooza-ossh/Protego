@@ -38,7 +38,7 @@ func main() {
 	fmt.Printf("Starting ProteGO on port %s...\n", cfg.AppPort)
 	fmt.Printf("Database DSN: %s\n", cfg.DatabaseDsn())
 
-	usecases := composition.ProvideDependencies(cfg)
+	usecases := composition.BuildApp(cfg)
 
 	router := gin.Default()
 	router.Use(middlewares.TimeoutMiddleware(3 * time.Second)) // TODO env reuqest timeout
@@ -58,7 +58,7 @@ func main() {
 	serverGroup.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
 	// Create custom HTTP server with timeouts
-	srv := composition.NewHttpServer(cfg, router)
+	srv := composition.ProvideHttpServer(cfg, router)
 
 	// Graceful shutdown
 	go func() {
