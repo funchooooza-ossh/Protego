@@ -27,7 +27,7 @@ func (r *RoleRepository) Create(ctx context.Context, role *domain.Role) error {
 
 	_, err := r.q.CreateRole(ctx, input)
 	if err != nil {
-		return ParseDBError(err, origin)
+		return ParseDBError(ctx, err, origin)
 	}
 	return nil
 }
@@ -38,7 +38,7 @@ func (r *RoleRepository) GetByID(ctx context.Context, id string) (*domain.Role, 
 	uuidID := helpers.UUIDToPg(uuid.MustParse(id))
 	roleRow, err := r.q.GetRoleByID(ctx, uuidID)
 	if err != nil {
-		return nil, ParseDBError(err, origin)
+		return nil, ParseDBError(ctx, err, origin)
 	}
 	return mapper.ToDomainRole(roleRow), nil
 
@@ -49,7 +49,7 @@ func (r *RoleRepository) GetByCode(ctx context.Context, code string) (*domain.Ro
 
 	roleRow, err := r.q.GetRoleByCode(ctx, code)
 	if err != nil {
-		return nil, ParseDBError(err, origin)
+		return nil, ParseDBError(ctx, err, origin)
 	}
 	return mapper.ToDomainRole(roleRow), nil
 

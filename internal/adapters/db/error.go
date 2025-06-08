@@ -11,14 +11,14 @@ import (
 	pgconn "github.com/jackc/pgx/v5/pgconn"
 )
 
-func ParseDBError(err error, origin string) error {
+func ParseDBError(ctx context.Context, err error, origin string) error {
 	if err == nil {
 		return nil
 	}
 
 	// Not found
 	if errors.Is(err, sql.ErrNoRows) || errors.Is(err, pgx.ErrNoRows) || err.Error() == "no rows in result set" {
-		e.LogErr(origin, err, e.Info)
+		e.LogErr(ctx, origin, err, e.Info)
 		return e.ErrNotFound
 	}
 
@@ -34,6 +34,7 @@ func ParseDBError(err error, origin string) error {
 		case "23514":
 			return e.ErrValidationFailed
 		default:
+			e.LogErr(ctx, origin, err, e.Error)
 			return e.ErrInternal
 		}
 	}
@@ -41,7 +42,7 @@ func ParseDBError(err error, origin string) error {
 	// network
 	var netErr *net.OpError
 	if errors.As(err, &netErr) {
-		e.LogErr(origin, netErr, e.Warn)
+		e.LogErr(ctx, origin, netErr, e.Error)
 		return e.ErrServiceDown
 	}
 
@@ -49,10 +50,10 @@ func ParseDBError(err error, origin string) error {
 	switch {
 	case errors.Is(err, context.DeadlineExceeded),
 		errors.Is(err, context.Canceled):
-		e.LogErr(origin, err, e.Warn)
+		e.LogErr(ctx, origin, err, e.Error)
 		return e.ErrTimeout
 	}
 
-	e.LogErr(origin, err, e.Warn)
+	e.LogErr(ctx, origin, err, e.Error)
 	return e.ErrInternal
 }

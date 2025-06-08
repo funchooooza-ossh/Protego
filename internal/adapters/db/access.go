@@ -26,7 +26,7 @@ func (r *AccessRepository) HasAccess(ctx context.Context, RoleID, action, resour
 	allowed, err := r.q.HasAccess(ctx, uuidID, action, resourceCode)
 
 	if err != nil {
-		return false, ParseDBError(err, origin)
+		return false, ParseDBError(ctx, err, origin)
 	}
 
 	return allowed, nil

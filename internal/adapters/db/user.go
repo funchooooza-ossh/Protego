@@ -27,7 +27,7 @@ func (r *UserRepository) Create(ctx context.Context, user *domain.User) error {
 
 	_, err := r.q.CreateUser(ctx, input)
 	if err != nil {
-		return ParseDBError(err, origin)
+		return ParseDBError(ctx, err, origin)
 	}
 
 	return nil
@@ -39,7 +39,7 @@ func (r *UserRepository) GetByID(ctx context.Context, id string) (*domain.User, 
 	uuidID := helpers.UUIDToPg(uuid.MustParse(id))
 	userRow, err := r.q.GetUserByID(ctx, uuidID)
 	if err != nil {
-		return nil, ParseDBError(err, origin)
+		return nil, ParseDBError(ctx, err, origin)
 	}
 
 	return mapper.ToDomainUser(userRow), nil
@@ -50,7 +50,7 @@ func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*domain.
 
 	userRow, err := r.q.GetUserByEmail(ctx, email)
 	if err != nil {
-		return nil, ParseDBError(err, origin)
+		return nil, ParseDBError(ctx, err, origin)
 	}
 	return mapper.ToDomainUser(userRow), nil
 }
@@ -61,7 +61,7 @@ func (r *UserRepository) Update(ctx context.Context, user *domain.User) error {
 	input := mapper.FromDomainUser(user)
 	_, err := r.q.UpdateUser(ctx, input)
 	if err != nil {
-		return ParseDBError(err, origin)
+		return ParseDBError(ctx, err, origin)
 	}
 
 	return nil
@@ -74,7 +74,7 @@ func (r *UserRepository) Delete(ctx context.Context, id string) error {
 	uuidID := helpers.UUIDToPg(uuid.MustParse(id))
 
 	if err := r.q.DeleteUser(ctx, uuidID); err != nil {
-		return ParseDBError(err, origin)
+		return ParseDBError(ctx, err, origin)
 	}
 	return nil
 }

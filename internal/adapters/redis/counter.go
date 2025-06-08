@@ -2,10 +2,12 @@ package adapters
 
 import (
 	"context"
-	"log"
+	"fmt"
 	"time"
 
+	"github.com/funchooooza-ossh/protego/internal/logger"
 	"github.com/redis/go-redis/v9"
+	"go.uber.org/zap/zapcore"
 )
 
 type CounterRepository struct {
@@ -25,13 +27,13 @@ func (r *CounterRepository) Increment(ctx context.Context, key string) (int, err
 
 	val, err := r.rdb.Incr(ctx, key).Result()
 	if err != nil {
-		return 0, ParseRedisError(err, origin)
+		return 0, ParseRedisError(ctx, err, origin)
 	}
 
 	if val == 1 {
 		err = r.rdb.Expire(ctx, key, r.ttl).Err()
 		if err != nil {
-			return int(val), ParseRedisError(err, origin)
+			return int(val), ParseRedisError(ctx, err, origin)
 		}
 	}
 
@@ -41,10 +43,10 @@ func (r *CounterRepository) Increment(ctx context.Context, key string) (int, err
 func (r *CounterRepository) Delete(ctx context.Context, key string) error {
 	deleted, err := r.rdb.Del(ctx, key).Result()
 	if err != nil {
-		return ParseRedisError(err, "CounterRepository.Delete")
+		return ParseRedisError(ctx, err, "CounterRepository.Delete")
 	}
 	if deleted == 0 {
-		log.Printf("redis key not found: %s", key)
+		logger.Log(ctx, zapcore.InfoLevel, fmt.Sprintf("redis key not found: %s", key))
 	}
 	return nil
 }

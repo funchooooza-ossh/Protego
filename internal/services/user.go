@@ -46,7 +46,7 @@ func (s *UserService) HasPermission(ctx context.Context, roleID, action, resourc
 
 	allowed, err := s.accessRepo.HasAccess(ctx, roleID, action, resourceCode)
 	if err != nil {
-		return false, e.ReturnErr(origin, err, e.Warn)
+		return false, e.ReturnErr(ctx, origin, err, e.Warn)
 	}
 
 	return allowed, nil
@@ -56,10 +56,10 @@ func (s *UserService) GetUserByEmail(ctx context.Context, email string) (*domain
 	const origin = "user_service.GetUserByEmail"
 	user, err := s.userRepo.GetByEmail(ctx, email)
 	if err != nil {
-		return nil, e.ReturnErr(origin, err, e.Info)
+		return nil, e.ReturnErr(ctx, origin, err, e.Info)
 	}
 	if user.Blocked {
-		return nil, e.ReturnErr(origin, fmt.Errorf("%w: user is blocked", e.ErrForbidden), e.Info)
+		return nil, e.ReturnErr(ctx, origin, fmt.Errorf("%w: user is blocked", e.ErrForbidden), e.Info)
 	}
 	return user, nil
 }
@@ -69,13 +69,13 @@ func (s *UserService) CreateUser(ctx context.Context, email, password string) (*
 
 	role, err := s.getOrCreateDefaultRole(ctx, s.defaultRoleCode) // preparing role
 	if err != nil {
-		return nil, e.ReturnErr(origin, err, e.Info)
+		return nil, e.ReturnErr(ctx, origin, err, e.Info)
 	}
 
 	hashed, err := s.hashPassword(ctx, password) // hashing password
 	if err != nil {
 		err = fmt.Errorf("%w: password hash failed", e.ErrInternal)
-		return nil, e.ReturnErr(origin, err, e.Warn)
+		return nil, e.ReturnErr(ctx, origin, err, e.Warn)
 	}
 
 	user := &domain.User{ // creating domain user model
@@ -87,7 +87,7 @@ func (s *UserService) CreateUser(ctx context.Context, email, password string) (*
 	}
 
 	if err := s.userRepo.Create(ctx, user); err != nil { // creating user in database
-		return nil, e.ReturnErr(origin, err, e.Warn)
+		return nil, e.ReturnErr(ctx, origin, err, e.Warn)
 	}
 	return user, nil // all ok = return new user
 
@@ -96,7 +96,7 @@ func (s *UserService) IncreaseCounter(ctx context.Context, id string) (int, erro
 	const origin = "user_service.IncreaseCounter"
 	count, err := s.counterRepo.Increment(ctx, id) // number of login attempts
 	if err != nil {
-		return 0, e.ReturnErr(origin, err, e.Warn) // error while accessing redis
+		return 0, e.ReturnErr(ctx, origin, err, e.Warn) // error while accessing redis
 	}
 	return count, nil
 }
@@ -105,7 +105,7 @@ func (s *UserService) DeleteCounter(ctx context.Context, id string) error {
 	const origin = "user_service.DeleteCounter"
 	err := s.counterRepo.Delete(ctx, id) // delete login counter
 	if err != nil {
-		return e.ReturnErr(origin, err, e.Warn)
+		return e.ReturnErr(ctx, origin, err, e.Warn)
 	}
 	return nil
 }
@@ -114,7 +114,7 @@ func (s *UserService) BlockUser(ctx context.Context, id string) error {
 	const origin = "user_service.BlockUser"
 	user, err := s.userRepo.GetByID(ctx, id) // get user from db
 	if err != nil {
-		return e.ReturnErr(origin, err, e.Warn)
+		return e.ReturnErr(ctx, origin, err, e.Warn)
 	}
 
 	if user.Blocked { // already blocked
@@ -124,9 +124,9 @@ func (s *UserService) BlockUser(ctx context.Context, id string) error {
 	user.Blocked = true
 
 	if err := s.userRepo.Update(ctx, user); err != nil {
-		return e.ReturnErr(origin, err, e.Warn) // block user in db
+		return e.ReturnErr(ctx, origin, err, e.Warn) // block user in db
 	}
-	e.BestEffort(origin, "DeleteCounter", s.counterRepo.Delete(ctx, id)) // delete counter after block
+	e.BestEffort(ctx, origin, "DeleteCounter", s.counterRepo.Delete(ctx, id)) // delete counter after block
 	return nil
 }
 
@@ -149,12 +149,12 @@ func (s *UserService) getOrCreateDefaultRole(ctx context.Context, code string) (
 			}
 			err = s.roleRepo.Create(ctx, role) // creating default role
 			if err != nil {
-				return nil, e.ReturnErr(origin, err, e.Warn) // error while creating
+				return nil, e.ReturnErr(ctx, origin, err, e.Warn) // error while creating
 			}
 			return role, nil
 
 		} else {
-			return nil, e.ReturnErr(origin, err, e.Warn) // another error while accessin role
+			return nil, e.ReturnErr(ctx, origin, err, e.Warn) // another error while accessin role
 		}
 	}
 

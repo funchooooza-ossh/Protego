@@ -1,15 +1,17 @@
 package handlers
 
 import (
-	"log"
+	"fmt"
 	"net/http"
 
 	"github.com/funchooooza-ossh/protego/cmd/server/dto"
 	httpHelpers "github.com/funchooooza-ossh/protego/cmd/server/httpHelpers"
 	"github.com/funchooooza-ossh/protego/internal/config"
 	e "github.com/funchooooza-ossh/protego/internal/errors"
+	"github.com/funchooooza-ossh/protego/internal/logger"
 	"github.com/funchooooza-ossh/protego/internal/usecases"
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap/zapcore"
 )
 
 // AuthForward godoc
@@ -54,7 +56,7 @@ func authHandler(c *gin.Context, u usecases.AuthUsecaseInterface, cfg *config.Co
 
 	if err != nil {
 		code, msg := e.ToHTTPResponse(err)
-		log.Printf("authHandler: error: %v. Response: code: %v, msg: %s", err, code, msg)
+		logger.Log(ctx, zapcore.InfoLevel, fmt.Sprintf("authHandler: error: %v. Response: code: %v, msg: %s", err, code, msg))
 		c.JSON(code, dto.ErrorResponse{Error: msg})
 		return
 	}
