@@ -65,7 +65,7 @@ func NewRepositories(conns *InfraConnections, cfg *config.Config) *Repositories 
 	)
 
 	redisAccessCache := redisadapters.NewCacheAccesRepository(conns.Redis, cfg.AccessCacheTTL)
-	cacheAccess := infra.NewAccessCacheAside(redisAccessCache, access, lruAccessCache)
+	cacheAccess := infra.NewAccessCacheAside(redisAccessCache, access, lruAccessCache) //TODO infra layer struct
 	session := redisadapters.NewSessionRepository(conns.Redis, cfg.RefreshTtl)
 	counter := redisadapters.NewCounterRepository(conns.Redis, cfg.LoginCounterTTL)
 

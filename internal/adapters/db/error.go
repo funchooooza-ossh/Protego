@@ -7,11 +7,14 @@ import (
 	"net"
 
 	e "github.com/funchooooza-ossh/protego/internal/errors"
+	m "github.com/funchooooza-ossh/protego/internal/metrics/lifespan"
 	"github.com/jackc/pgx/v5"
 	pgconn "github.com/jackc/pgx/v5/pgconn"
 )
 
 func ParseDBError(ctx context.Context, err error, origin string) error {
+	const component = "database"
+
 	if err == nil {
 		return nil
 	}
@@ -42,6 +45,7 @@ func ParseDBError(ctx context.Context, err error, origin string) error {
 	// network
 	var netErr *net.OpError
 	if errors.As(err, &netErr) {
+		m.Inc(component, "unavailable")
 		e.LogErr(ctx, origin, netErr, e.Error)
 		return e.ErrServiceDown
 	}
@@ -50,10 +54,12 @@ func ParseDBError(ctx context.Context, err error, origin string) error {
 	switch {
 	case errors.Is(err, context.DeadlineExceeded),
 		errors.Is(err, context.Canceled):
+		m.Inc(component, "timeout")
 		e.LogErr(ctx, origin, err, e.Error)
 		return e.ErrTimeout
 	}
 
 	e.LogErr(ctx, origin, err, e.Error)
+	m.Inc(component, "unhandled")
 	return e.ErrInternal
 }
