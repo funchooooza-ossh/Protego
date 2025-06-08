@@ -6,9 +6,11 @@ import (
 
 	"github.com/funchooooza-ossh/protego/internal/adapters"
 	dbadapters "github.com/funchooooza-ossh/protego/internal/adapters/db"
+	lruadapters "github.com/funchooooza-ossh/protego/internal/adapters/lru"
 	redisadapters "github.com/funchooooza-ossh/protego/internal/adapters/redis"
 	"github.com/funchooooza-ossh/protego/internal/config"
 	"github.com/funchooooza-ossh/protego/internal/db"
+	"github.com/funchooooza-ossh/protego/internal/infra"
 	"github.com/funchooooza-ossh/protego/internal/services"
 	"github.com/funchooooza-ossh/protego/internal/tokens"
 	"github.com/funchooooza-ossh/protego/internal/usecases"
@@ -55,7 +57,15 @@ func NewRepositories(conns *InfraConnections, cfg *config.Config) *Repositories 
 	role := dbadapters.NewRoleRepository(conns.Queries)
 	access := dbadapters.NewAccessRepository(conns.Queries)
 
-	cacheAccess := redisadapters.NewRedisAside(conns.Redis, access, cfg.AccessCacheTTL)
+	lruAccessCache := lruadapters.NewLruAccessCacheRepository(
+		1e7, //TODO env
+		1e6,
+		64,
+		cfg.AccessCacheTTL,
+	)
+
+	redisAccessCache := redisadapters.NewCacheAccesRepository(conns.Redis, cfg.AccessCacheTTL)
+	cacheAccess := infra.NewAccessCacheAside(redisAccessCache, access, lruAccessCache)
 	session := redisadapters.NewSessionRepository(conns.Redis, cfg.RefreshTtl)
 	counter := redisadapters.NewCounterRepository(conns.Redis, cfg.LoginCounterTTL)
 

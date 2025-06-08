@@ -33,3 +33,8 @@ type CounterRepositoryInterface interface {
 type AccessRepositoryInterface interface {
 	HasAccess(ctx context.Context, roleID, action, resourceCode string) (bool, error)
 }
+
+type LruCacheInterface interface {
+	Set(ctx context.Context, key interface{}, value any, cost int64) bool
+	Get(key interface{}) (interface{}, bool)
+}
