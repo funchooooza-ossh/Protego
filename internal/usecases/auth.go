@@ -26,12 +26,12 @@ func (u *AuthUsecase) Execute(ctx context.Context, resource, action, access, ref
 
 	claims, newAccess, err := u.tryGetClaims(ctx, access, refresh)
 	if err != nil {
-		return false, "", e.ReturnErr(origin, err, e.Info)
+		return false, "", e.ReturnErr(ctx, origin, err, e.Info)
 	}
 
 	allowed, err := u.userService.HasPermission(ctx, claims.RoleID, action, resource)
 	if err != nil {
-		return false, newAccess, e.ReturnErr(origin, err, e.Info)
+		return false, newAccess, e.ReturnErr(ctx, origin, err, e.Info)
 	}
 
 	return allowed, newAccess, nil
@@ -50,7 +50,7 @@ func (u *AuthUsecase) tryGetClaims(ctx context.Context, access, refresh string) 
 	if err != nil {
 		// если refresh выкинет ошибку => мы не сможем узнать от кого запрос = 401.
 		err = fmt.Errorf("%w:%s", e.ErrUnauthorized, err.Error())
-		return nil, "", e.ReturnErr(origin, err, e.Info)
+		return nil, "", e.ReturnErr(ctx, origin, err, e.Info)
 	}
 	// возвращаем обновленный access и claims
 	return newClaims, newAccess, nil

@@ -41,6 +41,7 @@ func main() {
 
 	router := gin.Default()
 	router.Use(middlewares.TimeoutMiddleware(3 * time.Second)) // TODO env reuqest timeout
+	router.Use(middlewares.RequestIDMiddleware())
 	// Routes
 	group := router.Group(cfg.MainRoute)
 	group.POST("/login", handlers.MakeLoginHandler(usecases.Login, cfg))

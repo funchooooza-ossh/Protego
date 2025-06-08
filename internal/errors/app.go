@@ -1,10 +1,14 @@
 package apperrors
 
 import (
+	"context"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
+
+	"github.com/funchooooza-ossh/protego/internal/logger"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 // ошибки приложения
@@ -99,37 +103,52 @@ func ToHTTPResponse(err error) (int, string) {
 	return http.StatusInternalServerError, "unexpected internal error"
 }
 
-type LogLevel string
+type LogLevel = zapcore.Level
 
 const (
-	Warn  LogLevel = "[WARN]"
-	Panic LogLevel = "[PANIC]"
-	Fatal LogLevel = "[FATAL]"
-	Info  LogLevel = "[INFO]"
+	Debug = zapcore.DebugLevel
+	Info  = zapcore.InfoLevel
+	Warn  = zapcore.WarnLevel
+	Error = zapcore.ErrorLevel
+	Panic = zapcore.PanicLevel
+	Fatal = zapcore.FatalLevel
 )
 
-func LogErr(origin string, err error, level LogLevel) {
+func LogErr(ctx context.Context, origin string, err error, level LogLevel) {
 	if err == nil {
 		return
 	}
-
-	log.Printf("%s from: %s | error: %v", level, origin, err)
-
-	switch level {
-	case Fatal:
+	logger.LogFromWrapper(ctx, level, "Handled error",
+		zap.String("origin", origin),
+		zap.Error(err),
+	)
+	if level == Fatal {
 		panic(fmt.Errorf("fatal error from %s: %w", origin, err))
-	case Panic:
-		panic(err)
 	}
 }
 
-func ReturnErr(origin string, err error, level LogLevel) error {
-	LogErr(origin, err, level)
+func ReturnErr(ctx context.Context, origin string, err error, level LogLevel) error {
+	if err == nil {
+		return nil
+	}
+
+	logger.LogFromWrapper(ctx, level, "Handled error",
+		zap.String("origin", origin),
+		zap.Error(err),
+	)
+
+	if level == Fatal {
+		panic(fmt.Errorf("fatal error from %s: %w", origin, err))
+	}
 	return err
 }
 
-func BestEffort(origin string, action string, err error) {
-	if err != nil {
-		LogErr(origin, fmt.Errorf("best-effort %s failed: %w", action, err), Info)
+func BestEffort(ctx context.Context, origin string, action string, err error) {
+	if err == nil {
+		return
 	}
+	logger.LogFromWrapper(ctx, Info, "Handled error",
+		zap.String("origin", origin),
+		zap.Error(fmt.Errorf("best-effort %s failed: %w", action, err)),
+	)
 }

@@ -60,17 +60,17 @@ func (s *TokenService) CreatePair(ctx context.Context, baseClaims *domain.TokenC
 	accessToken, err := s.jwtManager.GenerateToken(accessClaims)
 	if err != nil {
 		err = fmt.Errorf("%w creating access token", e.ErrInternal)
-		return "", "", e.ReturnErr(origin, err, e.Warn)
+		return "", "", e.ReturnErr(ctx, origin, err, e.Warn)
 	}
 	refreshToken, err := s.jwtManager.GenerateToken(refreshClaims)
 	if err != nil {
 		err = fmt.Errorf("%w creating refresh token", e.ErrInternal)
-		return "", "", e.ReturnErr(origin, err, e.Warn)
+		return "", "", e.ReturnErr(ctx, origin, err, e.Warn)
 	}
 	//store session into redis
 	sessionKey := s.sessionKey(baseClaims.UserID)
 	if err := s.tokenRepo.Set(ctx, sessionKey, jti); err != nil {
-		return "", "", e.ReturnErr(origin, err, e.Warn)
+		return "", "", e.ReturnErr(ctx, origin, err, e.Warn)
 	}
 
 	return accessToken, refreshToken, nil
@@ -84,7 +84,7 @@ func (s *TokenService) RefreshAccess(ctx context.Context, refresh string) (*doma
 	refreshClaims, err := s.jwtManager.VerifyToken(refresh, true)
 	if err != nil {
 		err = fmt.Errorf("%w %s", e.ErrInvalidInput, err.Error()) // сессией управляет хранимый id сессии
-		return nil, "", e.ReturnErr(origin, err, e.Info)
+		return nil, "", e.ReturnErr(ctx, origin, err, e.Info)
 
 	}
 
@@ -93,13 +93,13 @@ func (s *TokenService) RefreshAccess(ctx context.Context, refresh string) (*doma
 	storedJTI, err := s.tokenRepo.Get(ctx, sessionKey)
 	switch {
 	case errors.Is(err, e.ErrNotFound), storedJTI == "":
-		return nil, "", e.ReturnErr(origin, e.ErrUnauthorized, e.Info)
+		return nil, "", e.ReturnErr(ctx, origin, e.ErrUnauthorized, e.Info)
 
 	case err != nil:
-		return nil, "", e.ReturnErr(origin, err, e.Warn)
+		return nil, "", e.ReturnErr(ctx, origin, err, e.Warn)
 
 	case storedJTI != refreshClaims.JTI:
-		return nil, "", e.ReturnErr(origin, e.ErrUnauthorized, e.Info)
+		return nil, "", e.ReturnErr(ctx, origin, e.ErrUnauthorized, e.Info)
 	}
 
 	//3.Создаем новый токен
@@ -116,7 +116,7 @@ func (s *TokenService) RefreshAccess(ctx context.Context, refresh string) (*doma
 	newAccess, err := s.jwtManager.GenerateToken(newAccessClaims)
 	if err != nil {
 		err = fmt.Errorf("%w creating access token", e.ErrInternal)
-		return nil, "", e.ReturnErr(origin, err, e.Warn)
+		return nil, "", e.ReturnErr(ctx, origin, err, e.Warn)
 
 	}
 
@@ -129,12 +129,12 @@ func (s *TokenService) InvalidatePair(ctx context.Context, token string) error {
 	claims, err := s.jwtManager.VerifyToken(token, true)
 	if err != nil {
 		err = fmt.Errorf("%w: token", e.ErrInvalidInput)
-		return e.ReturnErr(origin, err, e.Info)
+		return e.ReturnErr(ctx, origin, err, e.Info)
 	}
 	sessionKey := s.sessionKey(claims.UserID)
 
 	if err = s.tokenRepo.Delete(ctx, sessionKey); err != nil {
-		return e.ReturnErr(origin, err, e.Warn)
+		return e.ReturnErr(ctx, origin, err, e.Warn)
 	}
 	return nil
 
@@ -150,7 +150,7 @@ func (s *TokenService) GetClaimsFromToken(ctx context.Context, token string) (*d
 	claims, err := s.jwtManager.VerifyToken(token, true)
 	if err != nil {
 		err = fmt.Errorf("%w: token", e.ErrInvalidInput)
-		return nil, e.ReturnErr(origin, err, e.Info) // token протух или не наш
+		return nil, e.ReturnErr(ctx, origin, err, e.Info) // token протух или не наш
 	}
 
 	// Возвращаем данные о пользователе

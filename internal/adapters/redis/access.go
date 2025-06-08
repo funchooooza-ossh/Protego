@@ -43,7 +43,7 @@ func (r *RedisAsideAccess) HasAccess(ctx context.Context, roleID, action, resour
 
 	cached, err := r.get(ctx, key)
 	if err != nil {
-		e.LogErr(origin, err, e.Info)
+		e.LogErr(ctx, origin, err, e.Info)
 	}
 	if cached != nil {
 		return *cached, nil
@@ -52,9 +52,9 @@ func (r *RedisAsideAccess) HasAccess(ctx context.Context, roleID, action, resour
 	val, err, _ := r.group.Do(key, func() (any, error) {
 		allowed, err := r.delegate.HasAccess(ctx, roleID, action, resourceCode)
 		if err != nil {
-			return nil, e.ReturnErr(origin, err, e.Warn)
+			return nil, e.ReturnErr(ctx, origin, err, e.Warn)
 		}
-		r.cacheAccess(key, origin, allowed)
+		r.cacheAccess(ctx, key, origin, allowed)
 		return allowed, nil
 
 	})
@@ -83,7 +83,7 @@ func (r *RedisAsideAccess) get(ctx context.Context, key string) (*bool, error) {
 		case errors.Is(err, redis.Nil):
 			return nil, nil
 		default:
-			return nil, ParseRedisError(err, origin)
+			return nil, ParseRedisError(ctx, err, origin)
 		}
 	}
 
@@ -95,25 +95,26 @@ func (r *RedisAsideAccess) get(ctx context.Context, key string) (*bool, error) {
 	return &result, nil
 }
 
-func (r *RedisAsideAccess) cacheAccess(key, origin string, allowed bool) {
-	//Сразу кладём в LRU
+func (r *RedisAsideAccess) cacheAccess(ctx context.Context, key, origin string, allowed bool) {
+	// LRU cache — sync, контекст не нужен
 	r.localCache.SetWithTTL(key, allowed, 1, r.ttl)
 
-	//Асинхронно отправляем в Redis
-	go func() {
+	// Асинхронный пуш в Redis
+	go func(parentCtx context.Context) {
 		defer func() {
-			if r := recover(); r != nil {
-				e.LogErr(origin, fmt.Errorf("panic in cacheAccess: %v", r), e.Info)
+			if rec := recover(); rec != nil {
+				e.LogErr(parentCtx, origin, fmt.Errorf("panic in cacheAccess: %v", rec), e.Info)
 			}
 		}()
 
-		ctx, cancel := context.WithTimeout(context.Background(), 300*time.Millisecond)
+		// Создаем scoped timeout контекст на базе родительского
+		ctx, cancel := context.WithTimeout(parentCtx, 300*time.Millisecond)
 		defer cancel()
 
 		if err := r.set(ctx, key, allowed); err != nil {
-			e.LogErr(origin, err, e.Info)
+			e.LogErr(ctx, origin, err, e.Info)
 		}
-	}()
+	}(ctx)
 }
 
 func (r *RedisAsideAccess) set(ctx context.Context, key string, value bool) error {
@@ -125,7 +126,7 @@ func (r *RedisAsideAccess) set(ctx context.Context, key string, value bool) erro
 	}
 
 	if err := r.rdb.Set(ctx, key, val, r.ttl).Err(); err != nil {
-		return ParseRedisError(err, origin)
+		return ParseRedisError(ctx, err, origin)
 	}
 
 	return nil
