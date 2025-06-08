@@ -6,6 +6,7 @@ import (
 
 	adapters "github.com/funchooooza-ossh/protego/internal/composition/adapters"
 	conns "github.com/funchooooza-ossh/protego/internal/composition/connections"
+	infra "github.com/funchooooza-ossh/protego/internal/composition/infrastructure"
 	services "github.com/funchooooza-ossh/protego/internal/composition/services"
 	usecases "github.com/funchooooza-ossh/protego/internal/composition/usecases"
 	"github.com/funchooooza-ossh/protego/internal/config"
@@ -37,8 +38,9 @@ func BuildApp(cfg *config.Config) *usecases.Usecaess {
 
 	}
 	m.Register()
-	repos := adapters.NewRepositories(conn, cfg)
-	services := services.NewServices(repos, cfg)
+	adapters := adapters.NewRepositories(conn, cfg)
+	infra := infra.NewInfrastructure(adapters)
+	services := services.NewServices(adapters, cfg, infra)
 	return usecases.NewUsecases(services, cfg)
 
 }

@@ -2,6 +2,7 @@ package compositiomServices
 
 import (
 	adapters "github.com/funchooooza-ossh/protego/internal/composition/adapters"
+	compositionInfrastructure "github.com/funchooooza-ossh/protego/internal/composition/infrastructure"
 	"github.com/funchooooza-ossh/protego/internal/config"
 	"github.com/funchooooza-ossh/protego/internal/contracts"
 	"github.com/funchooooza-ossh/protego/internal/services"
@@ -13,11 +14,11 @@ type Services struct {
 	Token contracts.TokenServiceInterface
 }
 
-func NewServices(repos *adapters.Repositories, cfg *config.Config) *Services {
+func NewServices(repos *adapters.Repositories, cfg *config.Config, infra *compositionInfrastructure.Infrastructure) *Services {
 	userService := services.NewUserService(repos.User,
 		repos.Role,
 		repos.Counter,
-		repos.Access,
+		infra.Access,
 		"user", //TODO env
 		cfg.PassCost,
 	)
