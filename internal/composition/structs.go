@@ -9,6 +9,7 @@ import (
 	services "github.com/funchooooza-ossh/protego/internal/composition/services"
 	usecases "github.com/funchooooza-ossh/protego/internal/composition/usecases"
 	"github.com/funchooooza-ossh/protego/internal/config"
+	m "github.com/funchooooza-ossh/protego/internal/metrics"
 	"github.com/gin-gonic/gin"
 )
 
@@ -35,6 +36,7 @@ func BuildApp(cfg *config.Config) *usecases.Usecaess {
 		log.Fatalf("failed to create connections: %v", err)
 
 	}
+	m.Register()
 	repos := adapters.NewRepositories(conn, cfg)
 	services := services.NewServices(repos, cfg)
 	return usecases.NewUsecases(services, cfg)

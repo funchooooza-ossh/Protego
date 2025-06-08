@@ -8,6 +8,7 @@ import (
 	"github.com/funchooooza-ossh/protego/internal/config"
 	"github.com/funchooooza-ossh/protego/internal/contracts"
 	"github.com/funchooooza-ossh/protego/internal/infra"
+	authmetrics "github.com/funchooooza-ossh/protego/internal/metrics/auth"
 )
 
 type Repositories struct {
@@ -21,7 +22,9 @@ type Repositories struct {
 func NewRepositories(conns *conns.InfraConnections, cfg *config.Config) *Repositories {
 	user := dbadapters.NewUserRepository(conns.Queries)
 	role := dbadapters.NewRoleRepository(conns.Queries)
-	access := dbadapters.NewAccessRepository(conns.Queries)
+
+	dbAccess := dbadapters.NewAccessRepository(conns.Queries)
+	dbAccessWithMetrics := authmetrics.NewDelegateWithMetrics(dbAccess)
 
 	lruAccessCache := lruadapters.NewLruAccessCacheRepository(
 		1e7, //TODO env
@@ -29,9 +32,12 @@ func NewRepositories(conns *conns.InfraConnections, cfg *config.Config) *Reposit
 		64,
 		cfg.AccessCacheTTL,
 	)
+	lruAccessCacheWithMetrics := authmetrics.NewAccessLruWithMetrics(lruAccessCache)
 
 	redisAccessCache := redisadapters.NewCacheAccesRepository(conns.Redis, cfg.AccessCacheTTL)
-	cacheAccess := infra.NewAccessCacheAside(redisAccessCache, access, lruAccessCache) //TODO infra layer struct
+	redisAccessCacheWithMetrics := authmetrics.NewRedisCacheWithMetrics(redisAccessCache)
+
+	cacheAccess := infra.NewAccessCacheAside(redisAccessCacheWithMetrics, dbAccessWithMetrics, lruAccessCacheWithMetrics) //TODO infra layer struct
 	session := redisadapters.NewSessionRepository(conns.Redis, cfg.RefreshTtl)
 	counter := redisadapters.NewCounterRepository(conns.Redis, cfg.LoginCounterTTL)
 
