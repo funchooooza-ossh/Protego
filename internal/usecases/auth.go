@@ -4,17 +4,17 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/funchooooza-ossh/protego/internal/contracts"
 	"github.com/funchooooza-ossh/protego/internal/domain"
 	e "github.com/funchooooza-ossh/protego/internal/errors"
-	"github.com/funchooooza-ossh/protego/internal/services"
 )
 
 type AuthUsecase struct {
-	userService  services.UserServiceInterface
-	tokenService services.TokenServiceInterface
+	userService  contracts.UserServiceInterface
+	tokenService contracts.TokenServiceInterface
 }
 
-func NewAuthUsecase(userService services.UserServiceInterface, tokenService services.TokenServiceInterface) *AuthUsecase {
+func NewAuthUsecase(userService contracts.UserServiceInterface, tokenService contracts.TokenServiceInterface) *AuthUsecase {
 	return &AuthUsecase{
 		userService:  userService,
 		tokenService: tokenService,

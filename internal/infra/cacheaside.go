@@ -6,24 +6,24 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/funchooooza-ossh/protego/internal/adapters"
+	"github.com/funchooooza-ossh/protego/internal/contracts"
 	e "github.com/funchooooza-ossh/protego/internal/errors"
 	"github.com/funchooooza-ossh/protego/internal/logger"
 	"golang.org/x/sync/singleflight"
 )
 
 type AccessCacheAside struct {
-	redisCache adapters.CacheRepositoryInterface
-	delegate   adapters.AccessRepositoryInterface
+	redisCache contracts.CacheRepositoryInterface
+	delegate   contracts.AccessRepositoryInterface
 
 	group    singleflight.Group
-	lruCache adapters.LruCacheInterface
+	lruCache contracts.LruCacheInterface
 }
 
 func NewAccessCacheAside(
-	redisCache adapters.CacheRepositoryInterface,
-	delegate adapters.AccessRepositoryInterface,
-	lru adapters.LruCacheInterface,
+	redisCache contracts.CacheRepositoryInterface,
+	delegate contracts.AccessRepositoryInterface,
+	lru contracts.LruCacheInterface,
 ) *AccessCacheAside {
 	return &AccessCacheAside{
 		redisCache: redisCache,

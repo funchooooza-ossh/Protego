@@ -3,15 +3,15 @@ package usecases
 import (
 	"context"
 
+	"github.com/funchooooza-ossh/protego/internal/contracts"
 	e "github.com/funchooooza-ossh/protego/internal/errors"
-	"github.com/funchooooza-ossh/protego/internal/services"
 )
 
 type LogoutUsecase struct {
-	tokenService services.TokenServiceInterface
+	tokenService contracts.TokenServiceInterface
 }
 
-func NewLogoutUsecase(tokenService services.TokenServiceInterface) *LogoutUsecase {
+func NewLogoutUsecase(tokenService contracts.TokenServiceInterface) *LogoutUsecase {
 	return &LogoutUsecase{
 		tokenService: tokenService,
 	}

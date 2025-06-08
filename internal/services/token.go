@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	adapters "github.com/funchooooza-ossh/protego/internal/adapters"
+	"github.com/funchooooza-ossh/protego/internal/contracts"
 	"github.com/funchooooza-ossh/protego/internal/domain"
 	e "github.com/funchooooza-ossh/protego/internal/errors"
 	"github.com/funchooooza-ossh/protego/internal/tokens"
@@ -15,14 +15,14 @@ import (
 
 type TokenService struct {
 	jwtManager *tokens.JWTManager
-	tokenRepo  adapters.CacheRepositoryInterface
+	tokenRepo  contracts.CacheRepositoryInterface
 	accessTTL  time.Duration
 	refreshTTL time.Duration
 }
 
 func NewTokenService(
 	jwt *tokens.JWTManager,
-	repo adapters.CacheRepositoryInterface,
+	repo contracts.CacheRepositoryInterface,
 	accessTTL, refreshTTL time.Duration,
 ) *TokenService {
 	return &TokenService{

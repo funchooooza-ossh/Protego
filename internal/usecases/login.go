@@ -4,22 +4,22 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/funchooooza-ossh/protego/internal/contracts"
 	"github.com/funchooooza-ossh/protego/internal/domain"
 	e "github.com/funchooooza-ossh/protego/internal/errors"
 	"github.com/funchooooza-ossh/protego/internal/logger"
-	"github.com/funchooooza-ossh/protego/internal/services"
 	"go.uber.org/zap/zapcore"
 )
 
 type LoginUsecase struct {
-	userService  services.UserServiceInterface
-	tokenService services.TokenServiceInterface
+	userService  contracts.UserServiceInterface
+	tokenService contracts.TokenServiceInterface
 	maxAttempts  int
 }
 
 func NewLoginUsecase(
-	userService services.UserServiceInterface,
-	tokenService services.TokenServiceInterface,
+	userService contracts.UserServiceInterface,
+	tokenService contracts.TokenServiceInterface,
 	maxAttempts int,
 ) *LoginUsecase {
 	return &LoginUsecase{

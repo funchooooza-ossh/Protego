@@ -4,11 +4,11 @@ import (
 	"log"
 	"time"
 
-	"github.com/funchooooza-ossh/protego/internal/adapters"
 	dbadapters "github.com/funchooooza-ossh/protego/internal/adapters/db"
 	lruadapters "github.com/funchooooza-ossh/protego/internal/adapters/lru"
 	redisadapters "github.com/funchooooza-ossh/protego/internal/adapters/redis"
 	"github.com/funchooooza-ossh/protego/internal/config"
+	"github.com/funchooooza-ossh/protego/internal/contracts"
 	"github.com/funchooooza-ossh/protego/internal/db"
 	"github.com/funchooooza-ossh/protego/internal/infra"
 	"github.com/funchooooza-ossh/protego/internal/services"
@@ -45,11 +45,11 @@ func NewInfraConnections(cfg *config.Config) (*InfraConnections, error) {
 }
 
 type Repositories struct {
-	User    adapters.UserRepositoryInterface
-	Session adapters.CacheRepositoryInterface
-	Counter adapters.CounterRepositoryInterface
-	Role    adapters.RoleRepositoryInterface
-	Access  adapters.AccessRepositoryInterface
+	User    contracts.UserRepositoryInterface
+	Session contracts.CacheRepositoryInterface
+	Counter contracts.CounterRepositoryInterface
+	Role    contracts.RoleRepositoryInterface
+	Access  contracts.AccessRepositoryInterface
 }
 
 func NewRepositories(conns *InfraConnections, cfg *config.Config) *Repositories {
@@ -79,8 +79,8 @@ func NewRepositories(conns *InfraConnections, cfg *config.Config) *Repositories 
 }
 
 type Services struct {
-	User  services.UserServiceInterface
-	Token services.TokenServiceInterface
+	User  contracts.UserServiceInterface
+	Token contracts.TokenServiceInterface
 }
 
 func NewServices(repos *Repositories, cfg *config.Config) *Services {
@@ -101,10 +101,10 @@ func NewServices(repos *Repositories, cfg *config.Config) *Services {
 }
 
 type Usecaess struct {
-	Register usecases.RegisterUsecaseInterface
-	Login    usecases.LoginUsecaseInterface
-	Auth     usecases.AuthUsecaseInterface
-	Logout   usecases.LogoutUsecaseInterface
+	Register contracts.RegisterUsecaseInterface
+	Login    contracts.LoginUsecaseInterface
+	Auth     contracts.AuthUsecaseInterface
+	Logout   contracts.LogoutUsecaseInterface
 }
 
 func NewUsecases(servs *Services, cfg *config.Config) *Usecaess {

@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	adapters "github.com/funchooooza-ossh/protego/internal/adapters"
+	"github.com/funchooooza-ossh/protego/internal/contracts"
 	"github.com/funchooooza-ossh/protego/internal/domain"
 	e "github.com/funchooooza-ossh/protego/internal/errors"
 	"github.com/funchooooza-ossh/protego/internal/helpers"
@@ -14,20 +14,20 @@ import (
 )
 
 type UserService struct {
-	userRepo    adapters.UserRepositoryInterface
-	roleRepo    adapters.RoleRepositoryInterface
-	counterRepo adapters.CounterRepositoryInterface
-	accessRepo  adapters.AccessRepositoryInterface
+	userRepo    contracts.UserRepositoryInterface
+	roleRepo    contracts.RoleRepositoryInterface
+	counterRepo contracts.CounterRepositoryInterface
+	accessRepo  contracts.AccessRepositoryInterface
 
 	defaultRoleCode string
 	passwordCost    int
 }
 
 func NewUserService(
-	userRepo adapters.UserRepositoryInterface,
-	roleRepo adapters.RoleRepositoryInterface,
-	counterRepo adapters.CounterRepositoryInterface,
-	accessRepo adapters.AccessRepositoryInterface,
+	userRepo contracts.UserRepositoryInterface,
+	roleRepo contracts.RoleRepositoryInterface,
+	counterRepo contracts.CounterRepositoryInterface,
+	accessRepo contracts.AccessRepositoryInterface,
 	defaultRoleCode string,
 	passwordCost int,
 ) *UserService {

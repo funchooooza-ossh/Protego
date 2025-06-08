@@ -3,18 +3,18 @@ package usecases
 import (
 	"context"
 
+	"github.com/funchooooza-ossh/protego/internal/contracts"
 	"github.com/funchooooza-ossh/protego/internal/domain"
 	e "github.com/funchooooza-ossh/protego/internal/errors"
 	"github.com/funchooooza-ossh/protego/internal/logger"
-	"github.com/funchooooza-ossh/protego/internal/services"
 	"go.uber.org/zap/zapcore"
 )
 
 type RegisterUsecase struct {
-	userService services.UserServiceInterface
+	userService contracts.UserServiceInterface
 }
 
-func NewRegisterUsecase(service services.UserServiceInterface) *RegisterUsecase {
+func NewRegisterUsecase(service contracts.UserServiceInterface) *RegisterUsecase {
 	return &RegisterUsecase{
 		userService: service,
 	}

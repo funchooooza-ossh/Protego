@@ -1,4 +1,4 @@
-package services
+package contracts
 
 import (
 	"context"

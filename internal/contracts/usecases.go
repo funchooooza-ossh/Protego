@@ -1,4 +1,4 @@
-package usecases
+package contracts
 
 import (
 	"context"

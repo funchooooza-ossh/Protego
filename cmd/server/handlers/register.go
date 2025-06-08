@@ -4,8 +4,8 @@ import (
 	"net/http"
 
 	"github.com/funchooooza-ossh/protego/cmd/server/dto"
+	"github.com/funchooooza-ossh/protego/internal/contracts"
 	e "github.com/funchooooza-ossh/protego/internal/errors"
-	"github.com/funchooooza-ossh/protego/internal/usecases"
 	"github.com/gin-gonic/gin"
 )
 
@@ -26,7 +26,7 @@ import (
 // @Failure 500 {object} dto.ErrorResponse "internal error"
 // @Failure 500 {object} dto.ErrorResponse "unexpected internal error"
 // @Router /register [post]
-func registerHandler(c *gin.Context, u usecases.RegisterUsecaseInterface) {
+func registerHandler(c *gin.Context, u contracts.RegisterUsecaseInterface) {
 	var req dto.RegisterRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "invalid data"})
@@ -45,7 +45,7 @@ func registerHandler(c *gin.Context, u usecases.RegisterUsecaseInterface) {
 	c.JSON(http.StatusCreated, dto.RegisterSuccessResponse{Msg: "user created"})
 }
 
-func MakeRegisterHandler(u usecases.RegisterUsecaseInterface) gin.HandlerFunc {
+func MakeRegisterHandler(u contracts.RegisterUsecaseInterface) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		registerHandler(c, u)
 	}
