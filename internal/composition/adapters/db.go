@@ -5,6 +5,7 @@ import (
 	"github.com/funchooooza-ossh/protego/internal/contracts"
 	"github.com/funchooooza-ossh/protego/internal/db"
 	authmetrics "github.com/funchooooza-ossh/protego/internal/metrics/auth"
+	loginmetrics "github.com/funchooooza-ossh/protego/internal/metrics/login"
 )
 
 func newAccessDbAdapter(db *db.UQueries) contracts.AccessRepositoryInterface {
@@ -16,7 +17,7 @@ func newAccessDbAdapter(db *db.UQueries) contracts.AccessRepositoryInterface {
 
 func newUserDbAdapter(db *db.UQueries) contracts.UserRepositoryInterface {
 	adapter := adapters.NewUserRepository(db)
-	return adapter
+	return loginmetrics.NewUserRepositoryWithMetrics(adapter)
 }
 
 func newRoledDbAdapter(db *db.UQueries) contracts.RoleRepositoryInterface {

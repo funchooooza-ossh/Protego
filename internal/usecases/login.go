@@ -32,6 +32,8 @@ func NewLoginUsecase(
 func (u *LoginUsecase) Execute(ctx context.Context, email, password string) (string, string, error) {
 	const origin = "login_usecase"
 
+	var loginCounter = 0
+
 	user, err := u.userService.GetUserByEmail(ctx, email)
 	if err != nil {
 		return "", "", e.ReturnErr(ctx, origin, err, e.Info)
@@ -43,13 +45,13 @@ func (u *LoginUsecase) Execute(ctx context.Context, email, password string) (str
 		e.BestEffort(ctx, origin, "verify password", err)
 	}
 	if !valid {
-		counter, err := u.userService.IncreaseCounter(ctx, userID)
+		loginCounter, err := u.userService.IncreaseCounter(ctx, userID)
 		if err != nil {
 			return "", "", e.ReturnErr(ctx, origin, err, e.Warn)
 		}
 
-		if counter >= u.maxAttempts {
-			logger.Log(ctx, zapcore.InfoLevel, fmt.Sprintf("user %s has been blocked after %d failed attempts", userID, counter))
+		if loginCounter >= u.maxAttempts {
+			logger.Log(ctx, zapcore.InfoLevel, fmt.Sprintf("user %s has been blocked after %d failed attempts", userID, loginCounter))
 
 			// блокировку неважно логировать отдельно — best-effort
 			e.BestEffort(ctx, origin, "BlockUser", u.userService.BlockUser(ctx, userID))
@@ -64,8 +66,10 @@ func (u *LoginUsecase) Execute(ctx context.Context, email, password string) (str
 
 		return "", "", e.ReturnErr(ctx, origin, fmt.Errorf("%w: credentials", e.ErrInvalidInput), e.Info)
 	}
+	if loginCounter > 0 {
+		e.BestEffort(ctx, origin, "DeleteCounter", u.userService.DeleteCounter(ctx, userID))
 
-	e.BestEffort(ctx, origin, "DeleteCounter", u.userService.DeleteCounter(ctx, userID))
+	}
 
 	claims := &domain.TokenClaims{
 		UserID: userID,
