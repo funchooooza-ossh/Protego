@@ -104,3 +104,40 @@ func (m *UserRepositoryWithMetrics) Delete(ctx context.Context, id string) error
 	return err
 
 }
+
+type CounterRepositoryWithMetrics struct {
+	impl contracts.CounterRepositoryInterface
+}
+
+func NewCounterRepositoryWithMetrics(impl contracts.CounterRepositoryInterface) *CounterRepositoryWithMetrics {
+	return &CounterRepositoryWithMetrics{
+		impl: impl,
+	}
+}
+
+func (m *CounterRepositoryWithMetrics) Increment(ctx context.Context, key string) (int, error) {
+	CounterIncrementCalls.Inc()
+
+	start := time.Now()
+	val, err := m.impl.Increment(ctx, key)
+	duration := time.Since(start).Seconds()
+
+	CounterIncrementLastDelay.Set(duration)
+	CounterIncrementSummary.Observe(duration)
+
+	return val, err
+}
+
+func (m *CounterRepositoryWithMetrics) Delete(ctx context.Context, key string) error {
+	CounterDeleteCalls.Inc()
+
+	start := time.Now()
+	err := m.impl.Delete(ctx, key)
+	duration := time.Since(start).Seconds()
+
+	CounterDeleteLastDelay.Set(duration)
+	CounterDeleteSummary.Observe(duration)
+
+	return err
+
+}

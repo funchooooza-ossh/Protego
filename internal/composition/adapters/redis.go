@@ -6,6 +6,7 @@ import (
 	adapters "github.com/funchooooza-ossh/protego/internal/adapters/redis"
 	"github.com/funchooooza-ossh/protego/internal/contracts"
 	authmetrics "github.com/funchooooza-ossh/protego/internal/metrics/auth"
+	loginmetrics "github.com/funchooooza-ossh/protego/internal/metrics/login"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -24,5 +25,5 @@ func newSessionRedisAdapter(rdb *redis.Client, ttl time.Duration) contracts.Cach
 func newLoginCounterRedisAdapter(rdb *redis.Client, ttl time.Duration) contracts.CounterRepositoryInterface {
 	adapter := adapters.NewCounterRepository(rdb, ttl)
 
-	return adapter
+	return loginmetrics.NewCounterRepositoryWithMetrics(adapter)
 }
