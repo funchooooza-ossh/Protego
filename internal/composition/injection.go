@@ -39,7 +39,7 @@ func BuildApp(cfg *config.Config) *usecases.Usecaess {
 	}
 	m.Register()
 	adapters := adapters.NewRepositories(conn, cfg)
-	infra := infra.NewInfrastructure(adapters)
+	infra := infra.NewInfrastructure(adapters, cfg)
 	services := services.NewServices(adapters, cfg, infra)
 	return usecases.NewUsecases(services, cfg)
 

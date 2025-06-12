@@ -20,7 +20,7 @@ func NewServices(repos *adapters.Repositories, cfg *config.Config, infra *compos
 		repos.Counter,
 		infra.Access,
 		"user", //TODO env
-		cfg.PassCost,
+		infra.Hasher,
 	)
 	jwt := tokens.NewJWTManager(cfg.JWTSecret)
 	tokenService := services.NewTokenService(jwt, repos.Session, cfg.AccessTtl, cfg.RefreshTtl)

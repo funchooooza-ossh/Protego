@@ -150,6 +150,30 @@ var (
 		Namespace:  "login",
 		Objectives: map[float64]float64{0.5: 0.05, 0.95: 0.01, 0.99: 0.001},
 	})
+	//------------PASSWORD HASHER----------------
+
+	VerifyPasswordDelay = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name:      "verify_password_last_delay_seconds",
+		Help:      "Last VerifyPassword delay in seconds",
+		Namespace: "login",
+	})
+	HashPasswordDelay = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name:      "has_password_last_delay_seconds",
+		Help:      "Last hashPassword delay in seconds",
+		Namespace: "login",
+	})
+	VerifyPasswordSummary = prometheus.NewSummary(prometheus.SummaryOpts{
+		Name:       "verify_password_delay_seconds",
+		Help:       "Summary of VerifyPassword delays",
+		Namespace:  "login",
+		Objectives: map[float64]float64{0.5: 0.05, 0.95: 0.01, 0.99: 0.001},
+	})
+	HashPasswordSummary = prometheus.NewSummary(prometheus.SummaryOpts{
+		Name:       "hash_password_delay_seconds",
+		Help:       "Summary of hashPassword delays",
+		Namespace:  "login",
+		Objectives: map[float64]float64{0.5: 0.05, 0.95: 0.01, 0.99: 0.001},
+	})
 )
 
 func Register() {
@@ -163,5 +187,7 @@ func Register() {
 		CounterIncrementCalls, CounterDeleteCalls,
 		CounterIncrementLastDelay, CounterDeleteLastDelay,
 		CounterIncrementSummary, CounterDeleteSummary,
+		VerifyPasswordDelay, HashPasswordDelay,
+		VerifyPasswordSummary, HashPasswordSummary,
 	)
 }

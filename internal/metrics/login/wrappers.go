@@ -10,6 +10,37 @@ import (
 	e "github.com/funchooooza-ossh/protego/internal/errors"
 )
 
+type PasswordHasherWithMetrics struct {
+	impl contracts.PasswordHasherInterface
+}
+
+func NewPasswordHasherWithMetrics(impl contracts.PasswordHasherInterface) *PasswordHasherWithMetrics {
+	return &PasswordHasherWithMetrics{
+		impl: impl,
+	}
+}
+
+func (m *PasswordHasherWithMetrics) Hash(ctx context.Context, unhashed string) ([]byte, error) {
+	start := time.Now()
+	val, err := m.impl.Hash(ctx, unhashed)
+	duration := time.Since(start).Seconds()
+
+	HashPasswordDelay.Set(duration)
+	HashPasswordSummary.Observe(duration)
+	return val, err
+}
+
+func (m *PasswordHasherWithMetrics) Verify(ctx context.Context, unhashed, hashed string) (bool, error) {
+	start := time.Now()
+	val, err := m.impl.Verify(ctx, unhashed, hashed)
+	duration := time.Since(start).Seconds()
+
+	VerifyPasswordDelay.Set(duration)
+	VerifyPasswordSummary.Observe(duration)
+
+	return val, err
+}
+
 type UserRepositoryWithMetrics struct {
 	impl contracts.UserRepositoryInterface
 }
