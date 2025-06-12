@@ -1,12 +1,11 @@
 package authmetrics
 
-// wrappers for auth usecase to observe metrics
-
 import (
 	"context"
 	"time"
 
 	"github.com/funchooooza-ossh/protego/internal/contracts"
+	"github.com/funchooooza-ossh/protego/internal/helpers"
 )
 
 type AccessLruWithMetrics struct {
@@ -20,10 +19,7 @@ func NewAccessLruWithMetrics(cache contracts.LruCacheInterface) *AccessLruWithMe
 func (m *AccessLruWithMetrics) Get(key interface{}) (interface{}, bool) {
 	start := time.Now()
 	val, hit := m.cache.Get(key)
-	duration := time.Since(start).Seconds()
-
-	LruLastDelay.Set(duration)
-	LruDelaySummary.Observe(duration)
+	helpers.ObserveDuration(LruLastDelay, LruDelaySummary, start)
 
 	if hit {
 		LruHits.Inc()
@@ -36,10 +32,7 @@ func (m *AccessLruWithMetrics) Get(key interface{}) (interface{}, bool) {
 func (m *AccessLruWithMetrics) Set(ctx context.Context, key interface{}, value any, cost int64) bool {
 	start := time.Now()
 	ok := m.cache.Set(ctx, key, value, cost)
-	duration := time.Since(start).Seconds()
-
-	LruLastDelay.Set(duration)
-	LruDelaySummary.Observe(duration)
+	helpers.ObserveDuration(LruLastDelay, LruDelaySummary, start)
 
 	return ok
 }
@@ -55,10 +48,7 @@ func NewRedisCacheWithMetrics(impl contracts.CacheRepositoryInterface) *AccessRe
 func (m *AccessRedisWithMetrics) Get(ctx context.Context, key string) (string, error) {
 	start := time.Now()
 	val, err := m.cache.Get(ctx, key)
-	duration := time.Since(start).Seconds()
-
-	RedisLastDelay.Set(duration)
-	RedisDelaySummary.Observe(duration)
+	helpers.ObserveDuration(RedisLastDelay, RedisDelaySummary, start)
 
 	if err == nil && val != "" {
 		RedisHits.Inc()
@@ -71,10 +61,7 @@ func (m *AccessRedisWithMetrics) Get(ctx context.Context, key string) (string, e
 func (m *AccessRedisWithMetrics) Set(ctx context.Context, key string, value string) error {
 	start := time.Now()
 	err := m.cache.Set(ctx, key, value)
-	duration := time.Since(start).Seconds()
-
-	RedisLastDelay.Set(duration)
-	RedisDelaySummary.Observe(duration)
+	helpers.ObserveDuration(RedisLastDelay, RedisDelaySummary, start)
 
 	return err
 }
@@ -94,11 +81,8 @@ func NewDelegateWithMetrics(impl contracts.AccessRepositoryInterface) *DBAccessW
 func (m *DBAccessWithMetrics) HasAccess(ctx context.Context, roleID, action, resourceCode string) (bool, error) {
 	start := time.Now()
 	result, err := m.db.HasAccess(ctx, roleID, action, resourceCode)
-	duration := time.Since(start).Seconds()
-
 	DelegateRequests.Inc()
-	DelegateLastDelay.Set(duration)
-	DelegateDelaySummary.Observe(duration)
+	helpers.ObserveDuration(DelegateLastDelay, DelegateDelaySummary, start)
 
 	return result, err
 }

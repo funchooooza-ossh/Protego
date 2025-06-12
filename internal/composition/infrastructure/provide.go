@@ -1,7 +1,7 @@
 package compositionInfrastructure
 
 import (
-	compositionAdapters "github.com/funchooooza-ossh/protego/internal/composition/adapters"
+	adapters "github.com/funchooooza-ossh/protego/internal/composition/adapters"
 	"github.com/funchooooza-ossh/protego/internal/config"
 	"github.com/funchooooza-ossh/protego/internal/contracts"
 )
@@ -12,7 +12,7 @@ type Infrastructure struct {
 	JWTManager contracts.JWTProvider
 }
 
-func NewInfrastructure(adapters *compositionAdapters.Repositories, cfg *config.Config) *Infrastructure {
+func NewInfrastructure(adapters *adapters.Repositories, cfg *config.Config) *Infrastructure {
 
 	cacheAsideAccess := newCacheAsideAccess(adapters.RedisAccess, adapters.DbAccess, adapters.LruAccess)
 	hasher := newPasswordHasher(cfg.PassCost)

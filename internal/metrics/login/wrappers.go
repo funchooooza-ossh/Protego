@@ -8,38 +8,8 @@ import (
 	"github.com/funchooooza-ossh/protego/internal/contracts"
 	"github.com/funchooooza-ossh/protego/internal/domain"
 	e "github.com/funchooooza-ossh/protego/internal/errors"
+	"github.com/funchooooza-ossh/protego/internal/helpers"
 )
-
-type PasswordHasherWithMetrics struct {
-	impl contracts.PasswordHasherInterface
-}
-
-func NewPasswordHasherWithMetrics(impl contracts.PasswordHasherInterface) *PasswordHasherWithMetrics {
-	return &PasswordHasherWithMetrics{
-		impl: impl,
-	}
-}
-
-func (m *PasswordHasherWithMetrics) Hash(ctx context.Context, unhashed string) ([]byte, error) {
-	start := time.Now()
-	val, err := m.impl.Hash(ctx, unhashed)
-	duration := time.Since(start).Seconds()
-
-	HashPasswordDelay.Set(duration)
-	HashPasswordSummary.Observe(duration)
-	return val, err
-}
-
-func (m *PasswordHasherWithMetrics) Verify(ctx context.Context, unhashed, hashed string) (bool, error) {
-	start := time.Now()
-	val, err := m.impl.Verify(ctx, unhashed, hashed)
-	duration := time.Since(start).Seconds()
-
-	VerifyPasswordDelay.Set(duration)
-	VerifyPasswordSummary.Observe(duration)
-
-	return val, err
-}
 
 type UserRepositoryWithMetrics struct {
 	impl contracts.UserRepositoryInterface
@@ -53,13 +23,9 @@ func NewUserRepositoryWithMetrics(impl contracts.UserRepositoryInterface) *UserR
 
 func (m *UserRepositoryWithMetrics) Create(ctx context.Context, user *domain.User) error {
 	UserRepoCreateCalls.Inc()
-
 	start := time.Now()
 	err := m.impl.Create(ctx, user)
-	duration := time.Since(start).Seconds()
-
-	UserRepoCreateLastDelay.Set(duration)
-	UserRepoCreateSummary.Observe(duration)
+	helpers.ObserveDuration(UserRepoCreateLastDelay, UserRepoCreateSummary, start)
 
 	if err != nil && errors.Is(err, e.ErrAlreadyExists) {
 		UserCreateAlreadyExists.Inc()
@@ -69,49 +35,33 @@ func (m *UserRepositoryWithMetrics) Create(ctx context.Context, user *domain.Use
 
 func (m *UserRepositoryWithMetrics) GetByID(ctx context.Context, id string) (*domain.User, error) {
 	UserRepoGetByIDCalls.Inc()
-
 	start := time.Now()
 	user, err := m.impl.GetByID(ctx, id)
-	duration := time.Since(start).Seconds()
-
-	UserRepoGetByIDLastDelay.Set(duration)
-	UserRepoGetByIDSummary.Observe(duration)
+	helpers.ObserveDuration(UserRepoGetByIDLastDelay, UserRepoGetByIDSummary, start)
 
 	if err != nil && errors.Is(err, e.ErrNotFound) {
 		UserGetByIDNotFound.Inc()
 	}
-
 	return user, err
-
 }
 
 func (m *UserRepositoryWithMetrics) GetByEmail(ctx context.Context, email string) (*domain.User, error) {
 	UserRepoGetByEmailCalls.Inc()
-
 	start := time.Now()
 	user, err := m.impl.GetByEmail(ctx, email)
-	duration := time.Since(start).Seconds()
-
-	UserRepoGetByEmailLastDelay.Set(duration)
-	UserRepoGetByEmailSummary.Observe(duration)
+	helpers.ObserveDuration(UserRepoGetByEmailLastDelay, UserRepoGetByEmailSummary, start)
 
 	if err != nil && errors.Is(err, e.ErrNotFound) {
 		UserGetByEmailNotFound.Inc()
 	}
-
 	return user, err
-
 }
 
 func (m *UserRepositoryWithMetrics) Update(ctx context.Context, user *domain.User) error {
 	UserRepoUpdateCalls.Inc()
-
 	start := time.Now()
 	err := m.impl.Update(ctx, user)
-	duration := time.Since(start).Seconds()
-
-	UserRepoUpdateLastDelay.Set(duration)
-	UserRepoUpdateSummary.Observe(duration)
+	helpers.ObserveDuration(UserRepoUpdateLastDelay, UserRepoUpdateSummary, start)
 
 	if err != nil && errors.Is(err, e.ErrNotFound) {
 		UserUpdateNotFound.Inc()
@@ -121,19 +71,14 @@ func (m *UserRepositoryWithMetrics) Update(ctx context.Context, user *domain.Use
 
 func (m *UserRepositoryWithMetrics) Delete(ctx context.Context, id string) error {
 	UserRepoDeleteCalls.Inc()
-
 	start := time.Now()
 	err := m.impl.Delete(ctx, id)
-	duration := time.Since(start).Seconds()
-
-	UserRepoDeleteLastDelay.Set(duration)
-	UserRepoDeleteSummary.Observe(duration)
+	helpers.ObserveDuration(UserRepoDeleteLastDelay, UserRepoDeleteSummary, start)
 
 	if err != nil && errors.Is(err, e.ErrNotFound) {
 		UserDeleteNotFound.Inc()
 	}
 	return err
-
 }
 
 type CounterRepositoryWithMetrics struct {
@@ -148,27 +93,18 @@ func NewCounterRepositoryWithMetrics(impl contracts.CounterRepositoryInterface) 
 
 func (m *CounterRepositoryWithMetrics) Increment(ctx context.Context, key string) (int, error) {
 	CounterIncrementCalls.Inc()
-
 	start := time.Now()
 	val, err := m.impl.Increment(ctx, key)
-	duration := time.Since(start).Seconds()
-
-	CounterIncrementLastDelay.Set(duration)
-	CounterIncrementSummary.Observe(duration)
+	helpers.ObserveDuration(CounterIncrementLastDelay, CounterIncrementSummary, start)
 
 	return val, err
 }
 
 func (m *CounterRepositoryWithMetrics) Delete(ctx context.Context, key string) error {
 	CounterDeleteCalls.Inc()
-
 	start := time.Now()
 	err := m.impl.Delete(ctx, key)
-	duration := time.Since(start).Seconds()
-
-	CounterDeleteLastDelay.Set(duration)
-	CounterDeleteSummary.Observe(duration)
+	helpers.ObserveDuration(CounterDeleteLastDelay, CounterDeleteSummary, start)
 
 	return err
-
 }
