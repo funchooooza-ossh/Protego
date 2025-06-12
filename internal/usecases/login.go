@@ -2,6 +2,7 @@ package usecases
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/funchooooza-ossh/protego/internal/contracts"
@@ -38,9 +39,10 @@ func (u *LoginUsecase) Execute(ctx context.Context, email, password string) (str
 	}
 
 	userID := user.ID
+
 	valid, err := u.userService.VerifyPassword(ctx, password, user.Password)
 	if err != nil {
-		e.BestEffort(ctx, origin, "verify password", err)
+		e.LogErr(ctx, origin, err, e.Info)
 	}
 	if !valid {
 		counter, err := u.userService.IncreaseCounter(ctx, userID)
@@ -49,20 +51,15 @@ func (u *LoginUsecase) Execute(ctx context.Context, email, password string) (str
 		}
 
 		if counter >= u.maxAttempts {
-			logger.Log(ctx, zapcore.InfoLevel, fmt.Sprintf("user %s has been blocked after %d failed attempts", userID, counter))
-
-			// блокировку неважно логировать отдельно — best-effort
+			logger.Log(ctx, zapcore.InfoLevel,
+				fmt.Sprintf("user %s has been blocked after %d failed attempts", userID, counter),
+			)
 			e.BestEffort(ctx, origin, "BlockUser", u.userService.BlockUser(ctx, userID))
 
-			return "", "", e.ReturnErr(
-				ctx,
-				origin,
-				fmt.Errorf("%w:login", e.ErrTooManyRequests),
-				e.Info,
-			)
+			return "", "", e.ReturnErr(ctx, origin, e.ErrTooManyRequests, e.Info)
 		}
 
-		return "", "", e.ReturnErr(ctx, origin, fmt.Errorf("%w: credentials", e.ErrInvalidInput), e.Info)
+		return "", "", e.ReturnErr(ctx, origin, e.ErrInvalidInput, e.Info)
 	}
 
 	e.BestEffort(ctx, origin, "DeleteCounter", u.userService.DeleteCounter(ctx, userID))
@@ -73,8 +70,15 @@ func (u *LoginUsecase) Execute(ctx context.Context, email, password string) (str
 	}
 
 	access, refresh, err := u.tokenService.CreatePair(ctx, claims)
-	if err != nil {
-		return "", "", e.ReturnErr(ctx, origin, err, e.Warn)
+	if err != nil { //TODO clean error switching
+		switch {
+		case errors.Is(err, e.ErrInvalidInput):
+			return "", "", e.ReturnErr(ctx, origin, err, e.Info)
+		case errors.Is(err, e.ErrUnauthorized):
+			return "", "", e.ReturnErr(ctx, origin, err, e.Info)
+		default:
+			return "", "", e.ReturnErr(ctx, origin, err, e.Error)
+		}
 	}
 
 	return access, refresh, nil

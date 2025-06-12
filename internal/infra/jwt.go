@@ -1,10 +1,13 @@
 package infra
 
 import (
+	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/funchooooza-ossh/protego/internal/domain"
+	e "github.com/funchooooza-ossh/protego/internal/errors"
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -23,7 +26,10 @@ type jwtClaims struct {
 func NewJWTManager(secret string) *JWTManager {
 	return &JWTManager{secret: secret}
 }
-func (m *JWTManager) GenerateToken(claims *domain.TokenClaims) (string, error) {
+
+func (m *JWTManager) GenerateToken(ctx context.Context, claims *domain.TokenClaims) (string, error) {
+	const origin = "jwt.generate_token"
+
 	jwtC := jwtClaims{
 		UserID: claims.UserID,
 		Role:   claims.RoleID,
@@ -38,27 +44,37 @@ func (m *JWTManager) GenerateToken(claims *domain.TokenClaims) (string, error) {
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwtC)
-	return token.SignedString([]byte(m.secret))
-}
 
-func (m *JWTManager) VerifyToken(tokenStr string, strict bool) (*domain.TokenClaims, error) {
-	var parser *jwt.Parser
-	if strict {
-		parser = jwt.NewParser()
-	} else {
-		parser = jwt.NewParser(jwt.WithoutClaimsValidation())
+	signed, err := token.SignedString([]byte(m.secret))
+	if err != nil {
+		err = fmt.Errorf("%w: %w", e.ErrInternal, err)
+		return "", e.ReturnErr(ctx, origin, err, e.Error)
 	}
+
+	return signed, nil
+}
+func (m *JWTManager) VerifyToken(ctx context.Context, tokenStr string) (*domain.TokenClaims, error) {
+	const origin = "jwt.verify_token"
+
+	parser := jwt.NewParser()
 
 	token, err := parser.ParseWithClaims(tokenStr, &jwtClaims{}, func(token *jwt.Token) (any, error) {
 		return []byte(m.secret), nil
 	})
 	if err != nil {
-		return nil, err // включает подпись, формат, exp (если strict)
+		if errors.Is(err, jwt.ErrTokenExpired) {
+			return nil, e.ReturnErr(ctx, origin, e.ErrTokenExpired, e.Info)
+		}
+		if errors.Is(err, jwt.ErrTokenMalformed) || errors.Is(err, jwt.ErrSignatureInvalid) {
+			return nil, e.ReturnErr(ctx, origin, e.ErrTokenInvalid, e.Info)
+		}
+		err = fmt.Errorf("%w: %w", e.ErrInternal, err)
+		return nil, e.ReturnErr(ctx, origin, err, e.Error)
 	}
 
 	claims, ok := token.Claims.(*jwtClaims)
-	if !ok || !token.Valid && strict {
-		return nil, errors.New("invalid claims or token")
+	if !ok || !token.Valid {
+		return nil, e.ReturnErr(ctx, origin, e.ErrTokenInvalid, e.Info)
 	}
 
 	return &domain.TokenClaims{

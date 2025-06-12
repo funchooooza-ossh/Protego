@@ -26,15 +26,19 @@ func ParseDBError(ctx context.Context, err error, origin string) error {
 	}
 
 	var pgErr *pgconn.PgError
-	if errors.As(err, &pgErr) {
+	if errors.As(err, &pgErr) { //TODO DO NOT REPEAT log return
 		switch pgErr.Code {
 		case "23505":
+			e.LogErr(ctx, origin, err, e.Info)
 			return e.ErrAlreadyExists
 		case "23503":
+			e.LogErr(ctx, origin, err, e.Info)
 			return e.ErrConflict
 		case "23502":
+			e.LogErr(ctx, origin, err, e.Info)
 			return e.ErrInvalidInput
 		case "23514":
+			e.LogErr(ctx, origin, err, e.Info)
 			return e.ErrValidationFailed
 		default:
 			e.LogErr(ctx, origin, err, e.Error)

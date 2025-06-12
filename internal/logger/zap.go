@@ -16,6 +16,8 @@ func Init(prod bool) {
 	cfg.ErrorOutputPaths = []string{"stderr"}
 	cfg.DisableStacktrace = false
 
+	cfg.Level = zap.NewAtomicLevelAt(zapcore.DebugLevel)
+
 	cfg.EncoderConfig = zapcore.EncoderConfig{
 		TimeKey:        "ts",
 		LevelKey:       "level",

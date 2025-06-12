@@ -2,6 +2,7 @@ package usecases
 
 import (
 	"context"
+	"errors"
 
 	"github.com/funchooooza-ossh/protego/internal/contracts"
 	"github.com/funchooooza-ossh/protego/internal/domain"
@@ -24,9 +25,15 @@ func (u *RegisterUsecase) Execute(ctx context.Context, email, password string) (
 	const origin = "register_usecase"
 
 	logger.Log(ctx, zapcore.InfoLevel, "register request")
+
 	user, err := u.userService.CreateUser(ctx, email, password)
 	if err != nil {
-		return nil, e.ReturnErr(ctx, origin, err, e.Info)
+		switch {
+		case errors.Is(err, e.ErrAlreadyExists):
+			return nil, e.ReturnErr(ctx, origin, err, e.Info)
+		default:
+			return nil, e.ReturnErr(ctx, origin, err, e.Warn) //TODO clean error switching
+		}
 	}
 
 	logger.Log(ctx, zapcore.InfoLevel, "register success")
