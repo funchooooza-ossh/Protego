@@ -7,17 +7,19 @@ import (
 )
 
 type Infrastructure struct {
-	Access contracts.AccessRepositoryInterface
-	Hasher contracts.PasswordHasherInterface
+	Access     contracts.AccessRepositoryInterface
+	Hasher     contracts.PasswordHasherInterface
+	JWTManager contracts.JWTProvider
 }
 
 func NewInfrastructure(adapters *compositionAdapters.Repositories, cfg *config.Config) *Infrastructure {
 
 	cacheAsideAccess := newCacheAsideAccess(adapters.RedisAccess, adapters.DbAccess, adapters.LruAccess)
 	hasher := newPasswordHasher(cfg.PassCost)
-
+	jwt := newJWTManager(cfg.JWTSecret)
 	return &Infrastructure{
-		Access: cacheAsideAccess,
-		Hasher: hasher,
+		Access:     cacheAsideAccess,
+		Hasher:     hasher,
+		JWTManager: jwt,
 	}
 }

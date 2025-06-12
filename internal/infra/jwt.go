@@ -1,4 +1,4 @@
-package tokens
+package infra
 
 import (
 	"errors"
@@ -8,17 +8,8 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-type JWTProvider interface {
-	GenerateToken(*domain.TokenClaims, time.Duration) (string, error)
-	VerifyToken(token string) (*domain.TokenClaims, error)
-}
-
 type JWTManager struct {
 	secret string
-}
-
-func NewJWTManager(secret string) *JWTManager {
-	return &JWTManager{secret: secret}
 }
 
 type jwtClaims struct {
@@ -29,6 +20,9 @@ type jwtClaims struct {
 	jwt.RegisteredClaims
 }
 
+func NewJWTManager(secret string) *JWTManager {
+	return &JWTManager{secret: secret}
+}
 func (m *JWTManager) GenerateToken(claims *domain.TokenClaims) (string, error) {
 	jwtC := jwtClaims{
 		UserID: claims.UserID,

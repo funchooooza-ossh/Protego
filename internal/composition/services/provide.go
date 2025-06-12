@@ -6,7 +6,6 @@ import (
 	"github.com/funchooooza-ossh/protego/internal/config"
 	"github.com/funchooooza-ossh/protego/internal/contracts"
 	"github.com/funchooooza-ossh/protego/internal/services"
-	"github.com/funchooooza-ossh/protego/internal/tokens"
 )
 
 type Services struct {
@@ -22,8 +21,7 @@ func NewServices(repos *adapters.Repositories, cfg *config.Config, infra *compos
 		"user", //TODO env
 		infra.Hasher,
 	)
-	jwt := tokens.NewJWTManager(cfg.JWTSecret)
-	tokenService := services.NewTokenService(jwt, repos.Session, cfg.AccessTtl, cfg.RefreshTtl)
+	tokenService := services.NewTokenService(infra.JWTManager, repos.Session, cfg.AccessTtl, cfg.RefreshTtl)
 
 	return &Services{
 		User:  userService,

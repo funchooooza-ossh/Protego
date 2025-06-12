@@ -9,19 +9,18 @@ import (
 	"github.com/funchooooza-ossh/protego/internal/contracts"
 	"github.com/funchooooza-ossh/protego/internal/domain"
 	e "github.com/funchooooza-ossh/protego/internal/errors"
-	"github.com/funchooooza-ossh/protego/internal/tokens"
 	"github.com/google/uuid"
 )
 
 type TokenService struct {
-	jwtManager *tokens.JWTManager
+	jwtManager contracts.JWTProvider
 	tokenRepo  contracts.CacheRepositoryInterface
 	accessTTL  time.Duration
 	refreshTTL time.Duration
 }
 
 func NewTokenService(
-	jwt *tokens.JWTManager,
+	jwt contracts.JWTProvider,
 	repo contracts.CacheRepositoryInterface,
 	accessTTL, refreshTTL time.Duration,
 ) *TokenService {

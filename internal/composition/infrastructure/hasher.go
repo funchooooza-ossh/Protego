@@ -9,6 +9,6 @@ import (
 func newPasswordHasher(
 	passwordCost int,
 ) contracts.PasswordHasherInterface {
-	adapter := infra.NewBcryptHasher(passwordCost)
-	return loginmetrics.NewPasswordHasherWithMetrics(adapter)
+	hasher := infra.NewBcryptHasher(passwordCost)
+	return loginmetrics.NewPasswordHasherWithMetrics(hasher)
 }
