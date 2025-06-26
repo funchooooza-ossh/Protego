@@ -5,39 +5,37 @@ import (
 	"errors"
 	"fmt"
 
-	adapters "github.com/funchooooza-ossh/protego/internal/adapters"
+	"github.com/funchooooza-ossh/protego/internal/contracts"
 	"github.com/funchooooza-ossh/protego/internal/domain"
 	e "github.com/funchooooza-ossh/protego/internal/errors"
-	"github.com/funchooooza-ossh/protego/internal/helpers"
 	"github.com/google/uuid"
-	"golang.org/x/crypto/bcrypt"
 )
 
 type UserService struct {
-	userRepo    adapters.UserRepositoryInterface
-	roleRepo    adapters.RoleRepositoryInterface
-	counterRepo adapters.CounterRepositoryInterface
-	accessRepo  adapters.AccessRepositoryInterface
+	userRepo    contracts.UserRepositoryInterface
+	roleRepo    contracts.RoleRepositoryInterface
+	counterRepo contracts.CounterRepositoryInterface
+	accessRepo  contracts.AccessRepositoryInterface
+	hasher      contracts.PasswordHasherInterface
 
 	defaultRoleCode string
-	passwordCost    int
 }
 
 func NewUserService(
-	userRepo adapters.UserRepositoryInterface,
-	roleRepo adapters.RoleRepositoryInterface,
-	counterRepo adapters.CounterRepositoryInterface,
-	accessRepo adapters.AccessRepositoryInterface,
+	userRepo contracts.UserRepositoryInterface,
+	roleRepo contracts.RoleRepositoryInterface,
+	counterRepo contracts.CounterRepositoryInterface,
+	accessRepo contracts.AccessRepositoryInterface,
 	defaultRoleCode string,
-	passwordCost int,
+	hasher contracts.PasswordHasherInterface,
 ) *UserService {
 	return &UserService{
 		userRepo:        userRepo,
 		roleRepo:        roleRepo,
+		hasher:          hasher,
 		counterRepo:     counterRepo,
 		accessRepo:      accessRepo,
 		defaultRoleCode: defaultRoleCode,
-		passwordCost:    passwordCost,
 	}
 }
 
@@ -131,10 +129,7 @@ func (s *UserService) BlockUser(ctx context.Context, id string) error {
 }
 
 func (s *UserService) VerifyPassword(ctx context.Context, password, hashed string) (bool, error) {
-	return helpers.SafeWithContext(ctx, func() (bool, error) {
-		err := bcrypt.CompareHashAndPassword([]byte(hashed), []byte(password))
-		return err == nil, err
-	})
+	return s.hasher.Verify(ctx, password, hashed)
 }
 
 func (s *UserService) getOrCreateDefaultRole(ctx context.Context, code string) (*domain.Role, error) {
@@ -162,7 +157,5 @@ func (s *UserService) getOrCreateDefaultRole(ctx context.Context, code string) (
 }
 
 func (s *UserService) hashPassword(ctx context.Context, password string) ([]byte, error) {
-	return helpers.SafeWithContext(ctx, func() ([]byte, error) {
-		return bcrypt.GenerateFromPassword([]byte(password), s.passwordCost)
-	})
+	return s.hasher.Hash(ctx, password)
 }

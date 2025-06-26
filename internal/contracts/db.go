@@ -1,4 +1,4 @@
-package adapters
+package contracts
 
 import (
 	"context"
@@ -17,19 +17,4 @@ type UserRepositoryInterface interface {
 type RoleRepositoryInterface interface {
 	Create(ctx context.Context, role *domain.Role) error
 	GetByCode(ctx context.Context, code string) (*domain.Role, error)
-}
-
-type CacheRepositoryInterface interface { // All of Redis repos works with already completed keys
-	Set(ctx context.Context, key string, value string) error
-	Get(ctx context.Context, key string) (value string, err error)
-	Delete(ctx context.Context, key string) error
-}
-
-type CounterRepositoryInterface interface {
-	Increment(ctx context.Context, key string) (int, error)
-	Delete(ctx context.Context, key string) error
-}
-
-type AccessRepositoryInterface interface {
-	HasAccess(ctx context.Context, roleID, action, resourceCode string) (bool, error)
 }

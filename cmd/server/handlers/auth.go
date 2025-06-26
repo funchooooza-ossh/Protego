@@ -7,9 +7,9 @@ import (
 	"github.com/funchooooza-ossh/protego/cmd/server/dto"
 	httpHelpers "github.com/funchooooza-ossh/protego/cmd/server/httpHelpers"
 	"github.com/funchooooza-ossh/protego/internal/config"
+	"github.com/funchooooza-ossh/protego/internal/contracts"
 	e "github.com/funchooooza-ossh/protego/internal/errors"
 	"github.com/funchooooza-ossh/protego/internal/logger"
-	"github.com/funchooooza-ossh/protego/internal/usecases"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap/zapcore"
 )
@@ -36,7 +36,7 @@ import (
 // @Failure 500 {object} dto.ErrorResponse "internal error"
 // @Failure 500 {object} dto.ErrorResponse "unexpected internal error"
 // @Router /auth/forward [get]
-func authHandler(c *gin.Context, u usecases.AuthUsecaseInterface, cfg *config.Config) {
+func authHandler(c *gin.Context, u contracts.AuthUsecaseInterface, cfg *config.Config) {
 	var req dto.AuthRequest
 	if err := c.ShouldBindHeader(&req); err != nil { //проверяем наличие необходимых заголовков
 		c.JSON(http.StatusUnauthorized, dto.ErrorResponse{Error: "no requested path in headers"})
@@ -75,7 +75,7 @@ func authHandler(c *gin.Context, u usecases.AuthUsecaseInterface, cfg *config.Co
 	c.Status(http.StatusOK) // иначе всегда 200
 }
 
-func MakeAuthHandler(u usecases.AuthUsecaseInterface, cfg *config.Config) gin.HandlerFunc {
+func MakeAuthHandler(u contracts.AuthUsecaseInterface, cfg *config.Config) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHandler(c, u, cfg)
 	}

@@ -22,22 +22,22 @@ func NewCounterRepository(rdb *redis.Client, ttl time.Duration) *CounterReposito
 	}
 }
 
-func (r *CounterRepository) Increment(ctx context.Context, key string) (int, error) {
-	const origin = "counter_repo.set"
+var incrAndExpire = redis.NewScript(`
+local current = redis.call("INCR", KEYS[1])
+if current == 1 then
+  redis.call("EXPIRE", KEYS[1], ARGV[1])
+end
+return current
+`) //use lua to avoid edge-cases with redis fails
 
-	val, err := r.rdb.Incr(ctx, key).Result()
+func (r *CounterRepository) Increment(ctx context.Context, key string) (int, error) {
+	const origin = "counter_repo.lua"
+
+	val, err := incrAndExpire.Run(ctx, r.rdb, []string{key}, int(r.ttl.Seconds())).Int()
 	if err != nil {
 		return 0, ParseRedisError(ctx, err, origin)
 	}
-
-	if val == 1 {
-		err = r.rdb.Expire(ctx, key, r.ttl).Err()
-		if err != nil {
-			return int(val), ParseRedisError(ctx, err, origin)
-		}
-	}
-
-	return int(val), nil
+	return val, nil
 }
 
 func (r *CounterRepository) Delete(ctx context.Context, key string) error {

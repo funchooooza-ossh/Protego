@@ -7,8 +7,8 @@ import (
 	"github.com/funchooooza-ossh/protego/cmd/server/dto"
 	httpHelpers "github.com/funchooooza-ossh/protego/cmd/server/httpHelpers"
 	"github.com/funchooooza-ossh/protego/internal/config"
+	"github.com/funchooooza-ossh/protego/internal/contracts"
 	e "github.com/funchooooza-ossh/protego/internal/errors"
-	"github.com/funchooooza-ossh/protego/internal/usecases"
 	"github.com/gin-gonic/gin"
 )
 
@@ -29,7 +29,7 @@ import (
 // @Failure 500 {object} dto.ErrorResponse "internal error"
 // @Failure 500 {object} dto.ErrorResponse "unexpected internal error"
 // @Router /login [post]
-func loginHandler(c *gin.Context, u usecases.LoginUsecaseInterface, cfg *config.Config) {
+func loginHandler(c *gin.Context, u contracts.LoginUsecaseInterface, cfg *config.Config) {
 	var req dto.LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "unauthenticated"})
@@ -52,7 +52,7 @@ func loginHandler(c *gin.Context, u usecases.LoginUsecaseInterface, cfg *config.
 	c.JSON(http.StatusOK, dto.LoginSuccessResponse{Msg: fmt.Sprintf("welcome back, %s", req.Email)})
 }
 
-func MakeLoginHandler(u usecases.LoginUsecaseInterface, cfg *config.Config) gin.HandlerFunc {
+func MakeLoginHandler(u contracts.LoginUsecaseInterface, cfg *config.Config) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		loginHandler(c, u, cfg)
 	}

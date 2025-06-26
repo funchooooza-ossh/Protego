@@ -6,23 +6,22 @@ import (
 	"fmt"
 	"time"
 
-	adapters "github.com/funchooooza-ossh/protego/internal/adapters"
+	"github.com/funchooooza-ossh/protego/internal/contracts"
 	"github.com/funchooooza-ossh/protego/internal/domain"
 	e "github.com/funchooooza-ossh/protego/internal/errors"
-	"github.com/funchooooza-ossh/protego/internal/tokens"
 	"github.com/google/uuid"
 )
 
 type TokenService struct {
-	jwtManager *tokens.JWTManager
-	tokenRepo  adapters.CacheRepositoryInterface
+	jwtManager contracts.JWTProvider
+	tokenRepo  contracts.CacheRepositoryInterface
 	accessTTL  time.Duration
 	refreshTTL time.Duration
 }
 
 func NewTokenService(
-	jwt *tokens.JWTManager,
-	repo adapters.CacheRepositoryInterface,
+	jwt contracts.JWTProvider,
+	repo contracts.CacheRepositoryInterface,
 	accessTTL, refreshTTL time.Duration,
 ) *TokenService {
 	return &TokenService{
@@ -57,15 +56,14 @@ func (s *TokenService) CreatePair(ctx context.Context, baseClaims *domain.TokenC
 		ExpiresAt: now + int64(s.refreshTTL.Seconds()),
 	}
 	// generate both tokens
-	accessToken, err := s.jwtManager.GenerateToken(accessClaims)
+	accessToken, err := s.jwtManager.GenerateToken(ctx, accessClaims)
 	if err != nil {
-		err = fmt.Errorf("%w creating access token", e.ErrInternal)
-		return "", "", e.ReturnErr(ctx, origin, err, e.Warn)
+		return "", "", e.ReturnErr(ctx, origin, fmt.Errorf("creating access token: %w", err), e.Error)
 	}
-	refreshToken, err := s.jwtManager.GenerateToken(refreshClaims)
+
+	refreshToken, err := s.jwtManager.GenerateToken(ctx, refreshClaims)
 	if err != nil {
-		err = fmt.Errorf("%w creating refresh token", e.ErrInternal)
-		return "", "", e.ReturnErr(ctx, origin, err, e.Warn)
+		return "", "", e.ReturnErr(ctx, origin, fmt.Errorf("creating refresh token: %w", err), e.Error)
 	}
 	//store session into redis
 	sessionKey := s.sessionKey(baseClaims.UserID)
@@ -80,12 +78,10 @@ func (s *TokenService) CreatePair(ctx context.Context, baseClaims *domain.TokenC
 func (s *TokenService) RefreshAccess(ctx context.Context, refresh string) (*domain.TokenClaims, string, error) {
 	const origin = "token_service.RefreshAccess"
 
-	//1. Парсим refresh
-	refreshClaims, err := s.jwtManager.VerifyToken(refresh, true)
+	// 1. Парсим refresh
+	refreshClaims, err := s.jwtManager.VerifyToken(ctx, refresh)
 	if err != nil {
-		err = fmt.Errorf("%w %s", e.ErrInvalidInput, err.Error()) // сессией управляет хранимый id сессии
-		return nil, "", e.ReturnErr(ctx, origin, err, e.Info)
-
+		return nil, "", classifyJWTError(ctx, origin, err)
 	}
 
 	// 2. Проверка jti-сессии
@@ -102,7 +98,7 @@ func (s *TokenService) RefreshAccess(ctx context.Context, refresh string) (*doma
 		return nil, "", e.ReturnErr(ctx, origin, e.ErrUnauthorized, e.Info)
 	}
 
-	//3.Создаем новый токен
+	// 3. Генерация access-токена
 	now := time.Now().Unix()
 	newAccessClaims := &domain.TokenClaims{
 		UserID:    refreshClaims.UserID,
@@ -113,11 +109,9 @@ func (s *TokenService) RefreshAccess(ctx context.Context, refresh string) (*doma
 		ExpiresAt: now + int64(s.accessTTL.Seconds()),
 	}
 
-	newAccess, err := s.jwtManager.GenerateToken(newAccessClaims)
+	newAccess, err := s.jwtManager.GenerateToken(ctx, newAccessClaims)
 	if err != nil {
-		err = fmt.Errorf("%w creating access token", e.ErrInternal)
-		return nil, "", e.ReturnErr(ctx, origin, err, e.Warn)
-
+		return nil, "", e.ReturnErr(ctx, origin, fmt.Errorf("creating access token: %w", err), e.Error)
 	}
 
 	return newAccessClaims, newAccess, nil
@@ -126,33 +120,43 @@ func (s *TokenService) RefreshAccess(ctx context.Context, refresh string) (*doma
 func (s *TokenService) InvalidatePair(ctx context.Context, token string) error {
 	const origin = "token_service.InvalidatePair"
 
-	claims, err := s.jwtManager.VerifyToken(token, true)
+	claims, err := s.jwtManager.VerifyToken(ctx, token)
 	if err != nil {
-		err = fmt.Errorf("%w: token", e.ErrInvalidInput)
-		return e.ReturnErr(ctx, origin, err, e.Info)
+		return classifyJWTError(ctx, origin, err)
 	}
+
 	sessionKey := s.sessionKey(claims.UserID)
 
 	if err = s.tokenRepo.Delete(ctx, sessionKey); err != nil {
 		return e.ReturnErr(ctx, origin, err, e.Warn)
 	}
-	return nil
 
+	return nil
+}
+
+func (s *TokenService) GetClaimsFromToken(ctx context.Context, token string) (*domain.TokenClaims, error) {
+	const origin = "token_service.GetClaimsFromToken"
+	// Парсим JWT
+	claims, err := s.jwtManager.VerifyToken(ctx, token)
+	if err != nil {
+		return nil, classifyJWTError(ctx, origin, err)
+	}
+
+	// Возвращаем данные о пользователе
+	return claims, nil
 }
 
 func (s *TokenService) sessionKey(id string) string {
 	return "session:" + id
 }
 
-func (s *TokenService) GetClaimsFromToken(ctx context.Context, token string) (*domain.TokenClaims, error) {
-	const origin = "token_service.GetClaimsFromToken"
-	// Парсим JWT
-	claims, err := s.jwtManager.VerifyToken(token, true)
-	if err != nil {
-		err = fmt.Errorf("%w: token", e.ErrInvalidInput)
-		return nil, e.ReturnErr(ctx, origin, err, e.Info) // token протух или не наш
+// classifyJWTError маппит ошибки jwt-парсинга в семантически корректные user-facing ошибки
+func classifyJWTError(ctx context.Context, origin string, err error) error {
+	switch {
+	case errors.Is(err, e.ErrTokenExpired),
+		errors.Is(err, e.ErrTokenInvalid):
+		return e.ReturnErr(ctx, origin, e.ErrInvalidInput, e.Info)
+	default:
+		return e.ReturnErr(ctx, origin, err, e.Warn)
 	}
-
-	// Возвращаем данные о пользователе
-	return claims, nil
 }

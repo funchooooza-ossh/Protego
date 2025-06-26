@@ -1,4 +1,4 @@
-package composition
+package compositionConnections
 
 import (
 	"context"

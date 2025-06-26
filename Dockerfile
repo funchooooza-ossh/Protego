@@ -10,7 +10,10 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o cli-tool ./cmd/cli
 
 FROM debian:bullseye-slim
 
-RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
+RUN apt-get update \
+ && apt-get install -y --fix-missing ca-certificates \
+ && rm -rf /var/lib/apt/lists/*
+
 
 WORKDIR /app
 COPY --from=builder /app/protego .

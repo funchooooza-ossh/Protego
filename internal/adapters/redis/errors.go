@@ -7,10 +7,13 @@ import (
 	"net"
 
 	e "github.com/funchooooza-ossh/protego/internal/errors"
+	m "github.com/funchooooza-ossh/protego/internal/metrics/lifespan"
 	"github.com/redis/go-redis/v9"
 )
 
 func ParseRedisError(ctx context.Context, err error, origin string) error {
+	const component = "redis"
+
 	if err == nil {
 		return nil
 	}
@@ -21,16 +24,19 @@ func ParseRedisError(ctx context.Context, err error, origin string) error {
 		return e.ErrNotFound
 
 	case errors.As(err, new(*net.OpError)):
+		m.Inc(component, "unavailable")
 		e.LogErr(ctx, origin, e.ErrServiceDown, e.Warn)
 		return fmt.Errorf("%w: network issue", e.ErrServiceDown)
 
 	case errors.Is(err, context.DeadlineExceeded),
 		errors.Is(err, context.Canceled):
+		m.Inc(component, "timeout")
 		e.LogErr(ctx, origin, e.ErrTimeout, e.Warn)
 		return fmt.Errorf("%w: timeout or cancel", e.ErrTimeout)
 
 	default:
 		e.LogErr(ctx, origin, e.ErrInternal, e.Warn)
+		m.Inc(component, "unhandled")
 		return fmt.Errorf("%w: %v", e.ErrInternal, err)
 	}
 }

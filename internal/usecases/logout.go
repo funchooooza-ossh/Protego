@@ -2,16 +2,17 @@ package usecases
 
 import (
 	"context"
+	"errors"
 
+	"github.com/funchooooza-ossh/protego/internal/contracts"
 	e "github.com/funchooooza-ossh/protego/internal/errors"
-	"github.com/funchooooza-ossh/protego/internal/services"
 )
 
 type LogoutUsecase struct {
-	tokenService services.TokenServiceInterface
+	tokenService contracts.TokenServiceInterface
 }
 
-func NewLogoutUsecase(tokenService services.TokenServiceInterface) *LogoutUsecase {
+func NewLogoutUsecase(tokenService contracts.TokenServiceInterface) *LogoutUsecase {
 	return &LogoutUsecase{
 		tokenService: tokenService,
 	}
@@ -20,8 +21,15 @@ func NewLogoutUsecase(tokenService services.TokenServiceInterface) *LogoutUsecas
 func (u *LogoutUsecase) Execute(ctx context.Context, access string) error {
 	const origin = "logout_usecase"
 
-	if err := u.tokenService.InvalidatePair(ctx, access); err != nil {
-		return e.ReturnErr(ctx, origin, err, e.Info)
+	err := u.tokenService.InvalidatePair(ctx, access)
+	if err != nil {
+		switch {
+		case errors.Is(err, e.ErrInvalidInput),
+			errors.Is(err, e.ErrUnauthorized):
+			return e.ReturnErr(ctx, origin, err, e.Info)
+		default:
+			return e.ReturnErr(ctx, origin, err, e.Warn) //TODO clean error switching
+		}
 	}
 
 	return nil

@@ -4,12 +4,12 @@ import (
 	"net/http"
 
 	httpHelpers "github.com/funchooooza-ossh/protego/cmd/server/httpHelpers"
+	"github.com/funchooooza-ossh/protego/internal/contracts"
 	e "github.com/funchooooza-ossh/protego/internal/errors"
-	"github.com/funchooooza-ossh/protego/internal/usecases"
 	"github.com/gin-gonic/gin"
 )
 
-func LogoutHandler(c *gin.Context, u usecases.LogoutUsecaseInterface) {
+func LogoutHandler(c *gin.Context, u contracts.LogoutUsecaseInterface) {
 	access, err := httpHelpers.ParseCookie(c, "access_token")
 	if err != nil {
 		return
